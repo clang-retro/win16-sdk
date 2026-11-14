@@ -338,6 +338,8 @@ UINT WINAPI GetCurrentPDB(void);
 HINSTANCE WINAPI LoadModule(LPCSTR, LPVOID);
 void WINAPI FreeModule(HINSTANCE);
 HINSTANCE WINAPI LoadLibrary(LPCSTR);
+/* LoadLibrary and LoadModule return an error code below 32 on failure. */
+#define HINSTANCE_ERROR ((HINSTANCE)32)
 void WINAPI FreeLibrary(HINSTANCE);
 #if WINVER >= 0x0300
 UINT WINAPI WinExec(LPCSTR, UINT);

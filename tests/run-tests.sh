@@ -129,6 +129,12 @@ for m in ${MODELS:-small medium compact large}; do
        build "dllapp-$t" $cc "$tests/dllapp.c" "-Wl,@dll-$t/testdll.lnk" -o "dll-$t/dllapp.exe"; then
       run "dll-$t" sh -c "cd dll-$t && '$WINE' dllapp.exe"
     fi
+    # An installable driver (a DLL named .DRV that exports DriverProc).
+    mkdir -p "drv-$t"
+    if build "hellodrv-$t" $cc -shared "$tests/hellodrv.c" -o "drv-$t/HELLODRV.DRV" &&
+       build "drvapp-$t" $cc "$tests/drvapp.c" -o "drv-$t/drvapp.exe"; then
+      run "drv-$t" sh -c "cd drv-$t && '$WINE' drvapp.exe"
+    fi
     # A C++ DLL with objects on its stack. Unoptimized, its libc++ code
     # does not fit in the one code segment of the compact model.
     if [ -z "$NO_CXX" ] && [ -f "$SYSROOT/lib/win16/$m/libc++.a" ] &&

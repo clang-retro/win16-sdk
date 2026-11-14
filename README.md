@@ -72,6 +72,14 @@ clang --target=i8086-pc-win16 -mcmodel=large --sysroot=<sysroot> -Os \
   functions with `__export __far __pascal`. To link a program with a DLL,
   `python3 tools/win16-imports.py MYLIB.DLL > mylib.lnk` lists its
   exports as linker directives; pass them with `-Wl,@mylib.lnk`.
+- Drivers: an installable driver (`.DRV`, as `OpenDriver` and MMSYSTEM
+  load) is a DLL that exports
+  `LRESULT __export WINAPI DriverProc(DWORD, HDRVR, UINT, LPARAM, LPARAM)`
+  and passes what it doesn't handle to `DefDriverProc`. Build it with
+  `-shared -o MYDRV.DRV`; `tests/win16/hellodrv.c` is one. Wine's
+  `OpenDriver` does nothing for 16-bit programs, so the test calls
+  `DriverProc` the way USER would. Windows 3.1 virtual device drivers
+  (VxDs, 32-bit LE files) are made with win32-sdk's `win31-vxd.cfg`.
 - A DLL runs on the stack of the program that calls it, so `SS` is not
   `DS`. The compiler reaches locals through `SS`: far pointers to locals
   (all data pointers in compact and large) carry `SS`, structures are
