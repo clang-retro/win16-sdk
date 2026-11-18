@@ -236,5 +236,34 @@ for v in ${VERSIONS:-1.01 2.03 3.00 3.10}; do
   done
 done
 
+# A display minidriver for Windows 95, 98 and Me, on the DIB engine
+# (dibeng.h). Wine has no DIB engine, so the test checks the NE file: the
+# header, and the display driver functions at their ordinals.
+grep '^export' "$tests/display.lnk" |
+  sed 's/^export \(.*\)\.\(.*\)/import \1 DISPLAY.\2/' >display.exports
+for m in ${DISPLAY_MODELS:-small large}; do
+  for o in O0 O2; do
+    t=$m-$o
+    mkdir -p "display-$t"
+    if build "display-$t" "$BIN/clang" --target=i8086-pc-win164.00 -mcmodel=$m \
+         --sysroot="$SYSROOT" $ldflag -$o -Wall -Wextra -Werror -shared \
+         -mwindows-prologue=all "$tests/display.c" -o "display-$t/DISPLAY.DRV" \
+         "-Wl,@$SYSROOT/lib/win16/dibeng.lnk" "-Wl,@$tests/display.lnk" &&
+       check "display-$t" "display-$t/DISPLAY.DRV" --version 4.00 --protmode; then
+      python3 "$scripts/win16-imports.py" "display-$t/DISPLAY.DRV" >"display-$t.exports"
+      if cmp -s display.exports "display-$t.exports" &&
+         grep -q "imports from: DIBENG, KERNEL" "display-$t.ne" &&
+         ! grep "segment" "display-$t.ne" | grep -qv fixed; then
+        pass=$((pass + 1))
+      else
+        fail=$((fail + 1))
+        echo "FAIL display-$t (exports or segments)"
+        diff display.exports "display-$t.exports" | head -20
+        sed 's/^/    /' "display-$t.ne" | head -20
+      fi
+    fi
+  done
+done
+
 echo "$pass passed, $fail failed"
 [ "$fail" = 0 ]
