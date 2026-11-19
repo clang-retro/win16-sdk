@@ -15,6 +15,7 @@ lib/windows.lnk            imports of the Windows 3.1 API
 lib/windows300.lnk         ... for Windows 3.0
 lib/windows200.lnk         ... for Windows 2.x
 lib/windows100.lnk         ... for Windows 1.x
+lib/dibeng.lnk             imports of the Windows 95 DIB engine (display drivers)
 build-sysroot.sh           builds <sysroot>/lib/win16 (see below)
 cfg/                       --config files for the toolchain package
 tools/ne-check.py          checks an NE program for a Windows version
@@ -30,7 +31,7 @@ A sysroot built with it holds, next to the DOS libraries:
 
 ```
 <sysroot>/include/windows.h, windowsx.h, commdlg.h, ...
-<sysroot>/lib/win16/windows*.lnk
+<sysroot>/lib/win16/windows*.lnk, dibeng.lnk
 <sysroot>/share/licenses/win16-sdk/
 <sysroot>/lib/win16/<model>/       crt0.obj, libentry.obj (DLLs), libc.a,
                                    libclang_rt.builtins.a, libc++.a, libc++abi.a
@@ -80,6 +81,29 @@ clang --target=i8086-pc-win16 -mcmodel=large --sysroot=<sysroot> -Os \
   `OpenDriver` does nothing for 16-bit programs, so the test calls
   `DriverProc` the way USER would. Windows 3.1 virtual device drivers
   (VxDs, 32-bit LE files) are made with win32-sdk's `win31-vxd.cfg`.
+- Display drivers for Windows 95, 98 and Me: a minidriver is a DLL named
+  `DISPLAY.DRV` that exports the GDI display driver functions at fixed
+  ordinals, sets the mode in `Enable` and passes the drawing to the DIB
+  engine (DIBENG.DLL). `<gdidefs.h>` has the GDI driver interface
+  (`GDIINFO`, its capability bits, `DRAWMODE`), `<dibeng.h>` the DIB
+  engine's (`DIBENGINE`, `DIB_Enable`, `CreateDIBPDevice`) and
+  `DIBENG_LINK`, which makes the stubs that jump to the engine.
+  `lib/win16/dibeng.lnk` imports the engine by ordinal (its 46 functions
+  are the same in 95, 98 and Me). `tests/win16/display.c` is a minidriver
+  for the VGA's 320x200 256-colour mode, a starting point rather than a
+  driver to install; build it with
+
+  ```sh
+  clang --target=i8086-pc-win164.00 --sysroot=<sysroot> -shared \
+    -mwindows-prologue=all display.c -o DISPLAY.DRV \
+    -Wl,@<sysroot>/lib/win16/dibeng.lnk -Wl,@display.lnk
+  ```
+
+  where `display.lnk` (next to the test) exports the functions at their
+  ordinals and makes the segments fixed. `-mwindows-prologue=all` gives
+  every far function the DLL entry sequence without `__export`, which
+  would export it a second time, by name. The display VxD's half, the
+  mini-VDD, is made with win32-sdk (`vxd/minivdd.c`).
 - A DLL runs on the stack of the program that calls it, so `SS` is not
   `DS`. The compiler reaches locals through `SS`: far pointers to locals
   (all data pointers in compact and large) carry `SS`, structures are
@@ -236,6 +260,7 @@ none of Microsoft's text is used):
 | `dde.h`, `ddeml.h` | DDE messages, and the DDE Management Library (DDEML) |
 | `print.h` | printer driver settings (`DM_*`, `DC_*`) and the spooler |
 | `stress.h` | STRESS: using up resources, for testing |
+| `gdidefs.h`, `dibeng.h` | display drivers: the GDI driver interface and the Windows 95 DIB engine (DIBENG) |
 | `winsock.h` | Windows Sockets 1.1 (WINSOCK.DLL, which comes with the network software) |
 
 - `STRICT` makes each kind of handle a distinct type (a near pointer to a

@@ -13,6 +13,8 @@
 #include <ddeml.h>
 #include <print.h>
 #include <winsock.h>
+#include <gdidefs.h>
+#include <dibeng.h>
 
 #define SIZE(type, n) _Static_assert(sizeof(type) == (n), #type)
 
@@ -113,7 +115,18 @@ SIZE(fd_set, 130);
 SIZE(struct sockaddr_in, 16);
 SIZE(struct hostent, 16);
 
+/* The display driver interface (gdidefs.h, dibeng.h), from the layouts of
+ * the DDK's GDIDEFS.INC, DIBENG.INC and VALMODE.INC. */
+SIZE(GDIINFO, 110);
+_Static_assert(__builtin_offsetof(GDIINFO, dpLogPixelsX) == 88, "GDIINFO");
+SIZE(DRAWMODE, 42);
+SIZE(DIBENGINE, 48);
+_Static_assert(__builtin_offsetof(DIBENGINE, deFlags) == 28, "DIBENGINE");
+SIZE(DIBColorEntry, 4);
+SIZE(DISPVALMODE, 8);
+
 int main(void) {
   printf("ALL PASSED\n");
   return 0;
 }
+

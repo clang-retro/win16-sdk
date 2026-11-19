@@ -1,0 +1,47 @@
+# The exports of a display driver, at the ordinals GDI and USER look them
+# up by, and the description GDI reads (the technology and the aspect
+# ratio: "DISPLAY : <ratio>, <x dpi>, <y dpi>"). The module must be named
+# DISPLAY, which the output name DISPLAY.DRV gives.
+option description 'DISPLAY : 100, 96, 96'
+# The mouse interrupt moves the cursor (MoveCursor), so the code and data
+# are loaded at start and never move.
+segment type code preload fixed
+segment type data preload fixed
+export BITBLT.1
+export COLORINFO.2
+export CONTROL.3
+export DISABLE.4
+export ENABLE.5
+export ENUMDFONTS.6
+export ENUMOBJ.7
+export OUTPUT.8
+export PIXEL.9
+export REALIZEOBJECT.10
+export STRBLT.11
+export SCANLR.12
+export DEVICEMODE.13
+export EXTTEXTOUT.14
+export GETCHARWIDTH.15
+export DEVICEBITMAP.16
+export FASTBORDER.17
+export SETATTRIBUTE.18
+export DIBBLT.19
+export CREATEDIBITMAP.20
+export DIBTODEVICE.21
+export SETPALETTE.22
+export GETPALETTE.23
+export SETPALETTETRANSLATE.24
+export GETPALETTETRANSLATE.25
+export UPDATECOLORS.26
+export STRETCHBLT.27
+export STRETCHDIBITS.28
+export SELECTBITMAP.29
+export BITMAPBITS.30
+export REENABLE.31
+export INQUIRE.101
+export SETCURSOR.102
+export MOVECURSOR.103
+export CHECKCURSOR.104
+export GETDRIVERRESOURCEID.450
+export USERREPAINTDISABLE.500
+export VALIDATEMODE.700
