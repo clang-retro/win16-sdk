@@ -86,6 +86,9 @@ for m in ${MODELS:-small medium compact large}; do
     # The sizes of the structures in the headers (checked when it builds).
     build "sizes-$t" $cc "$tests/sizes.c" -o "sizes-$t.exe" &&
       run "sizes-$t" "$WINE" "sizes-$t.exe"
+    # OLE 2: the task allocator, GUIDs, BSTRs and VARIANTs.
+    build "ole-$t" $cc "$tests/ole.c" -o "ole-$t.exe" &&
+      run "ole-$t" "$WINE" "ole-$t.exe"
     # windowsx.h: the message crackers and forwarders, with and without
     # STRICT.
     build "windowsx-$t" $cc "$tests/windowsx.c" -o "windowsx-$t.exe" &&

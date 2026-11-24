@@ -346,6 +346,8 @@ They build each test for the small, medium, compact and large models at
 - `tests/win16/api.c`: `WinMain` and KERNEL and USER calls through
   `<windows.h>`.
 - `tests/win16/sizes.c`: the size of each structure in the headers.
+- `tests/win16/ole.c`: the OLE 2 task allocator, GUIDs, `BSTR`s and
+  `VARIANT`s (COMPOBJ and OLE2DISP).
 - `tests/win16/windowsx.c`: every message cracker splits a message and its
   forwarder packs it back the same way, with and without `STRICT`, and
   the control macros compile.
