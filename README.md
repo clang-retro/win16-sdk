@@ -262,6 +262,7 @@ none of Microsoft's text is used):
 | `stress.h` | STRESS: using up resources, for testing |
 | `gdidefs.h`, `dibeng.h` | display drivers: the GDI driver interface and the Windows 95 DIB engine (DIBENG) |
 | `winsock.h` | Windows Sockets 1.1 (WINSOCK.DLL, which comes with the network software) |
+| `ole.h`, `ole2.h`, `compobj.h`, `storage.h`, `dispatch.h`, `olenls.h`, `vfw.h`, `wing.h`, `sql.h`, `sqlext.h`, `mapi.h` | the redistributable DLLs: OLE 1 and 2, Video for Windows, WinG, ODBC 2.0 and Simple MAPI (see [docs/headers.md](docs/headers.md)) |
 
 - `STRICT` makes each kind of handle a distinct type (a near pointer to a
   structure of its own), and the callback types prototypes, so the compiler

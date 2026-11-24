@@ -15,6 +15,12 @@
 #include <winsock.h>
 #include <gdidefs.h>
 #include <dibeng.h>
+#include <ole.h>
+#include <ole2.h>
+#include <dispatch.h>
+#include <vfw.h>
+#include <sqlext.h>
+#include <mapi.h>
 
 #define SIZE(type, n) _Static_assert(sizeof(type) == (n), #type)
 
@@ -124,6 +130,28 @@ SIZE(DIBENGINE, 48);
 _Static_assert(__builtin_offsetof(DIBENGINE, deFlags) == 28, "DIBENGINE");
 SIZE(DIBColorEntry, 4);
 SIZE(DISPVALMODE, 8);
+
+/* OLE 2 (compobj.h, storage.h, ole2.h, dispatch.h). SAFEARRAY has 16-bit
+ * counts and a handle, as Wine's SAFEARRAY16. */
+SIZE(GUID, 16);
+SIZE(FORMATETC, 18);
+SIZE(STGMEDIUM, 12);
+SIZE(VARIANT, 16);
+SIZE(SAFEARRAYBOUND, 8);
+SIZE(SAFEARRAY, 24);
+SIZE(DISPPARAMS, 12);
+
+/* Video for Windows (vfw.h), as Wine's ICINFO16 and AVISTREAMINFO16. */
+SIZE(ICINFO, 296);
+SIZE(AVIFILEINFO, 108);
+SIZE(AVISTREAMINFO, 132);
+SIZE(AVICOMPRESSOPTIONS, 44);
+
+/* ODBC 2.0 (sqlext.h) and Simple MAPI (mapi.h). */
+SIZE(TIMESTAMP_STRUCT, 16);
+SIZE(MapiMessage, 48);
+SIZE(MapiRecipDesc, 24);
+SIZE(MapiFileDesc, 24);
 
 int main(void) {
   printf("ALL PASSED\n");
