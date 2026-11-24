@@ -46,6 +46,65 @@ MODULES = [
     ("DDEML", "ddeml.dll16/ddeml.dll16.spec"),
     ("STRESS", "stress.dll16/stress.dll16.spec"),
     ("WINSOCK", "winsock.dll16/winsock.dll16.spec"),
+    # OLE 1.0 (Windows 3.1), OLE 2.0, Video for Windows and WinG: DLLs that
+    # come with Windows 3.1 or that programs install with them.
+    ("OLECLI", "olecli.dll16/olecli.dll16.spec"),
+    ("OLESVR", "olesvr.dll16/olesvr.dll16.spec"),
+    ("COMPOBJ", "compobj.dll16/compobj.dll16.spec"),
+    ("STORAGE", "storage.dll16/storage.dll16.spec"),
+    ("OLE2", "ole2.dll16/ole2.dll16.spec"),
+    ("OLE2DISP", "ole2disp.dll16/ole2disp.dll16.spec"),
+    ("OLE2NLS", "ole2nls.dll16/ole2nls.dll16.spec"),
+    ("TYPELIB", "typelib.dll16/typelib.dll16.spec"),
+    ("MSVIDEO", "msvideo.dll16/msvideo.dll16.spec"),
+    ("AVIFILE", "avifile.dll16/avifile.dll16.spec"),
+    ("WING", "wing.dll16/wing.dll16.spec"),
+]
+
+# Modules whose Wine spec has entries of Wine's own from ordinal 500 up
+# (the methods of its objects).
+WINE_METHODS_FROM_500 = {"COMPOBJ", "STORAGE", "OLE2"}
+
+# Wine's name of an entry where it is not the name that Windows exports.
+RENAMED = {
+    ("STORAGE", "STGCREATEDOCFILEA"): "STGCREATEDOCFILE",
+    ("AVIFILE", "_AVISAVE"): "_AVISave",
+}
+
+# Entry points of the OLE, video and WinG DLLs that each DLL defines for
+# itself, which a DLL must not import from another.
+OWN_ENTRIES = {"LIBMAIN", "DLLENTRYPOINT", "DLLGETCLASSOBJECT",
+               "DLLCANUNLOADNOW"}
+NEW_MODULES = {"OLECLI", "OLESVR", "COMPOBJ", "STORAGE", "OLE2", "OLE2DISP",
+               "OLE2NLS", "TYPELIB", "MSVIDEO", "AVIFILE", "WING"}
+
+# DLLs that Wine has no 16-bit spec for. Their functions are imported by
+# name (Pascal functions export their names in upper case), which needs no
+# ordinal: Simple MAPI (MAPI.DLL, Windows for Workgroups and Microsoft
+# Mail) and ODBC 2.0 (ODBC.DLL).
+BY_NAME = [
+    ("MAPI", ["MAPILogon", "MAPILogoff", "MAPISendMail", "MAPISendDocuments",
+              "MAPIFindNext", "MAPIReadMail", "MAPISaveMail",
+              "MAPIDeleteMail", "MAPIFreeBuffer", "MAPIAddress",
+              "MAPIDetails", "MAPIResolveName"]),
+    ("ODBC", ["SQLAllocConnect", "SQLAllocEnv", "SQLAllocStmt",
+              "SQLBindCol", "SQLCancel", "SQLColAttributes", "SQLConnect",
+              "SQLDescribeCol", "SQLDisconnect", "SQLError",
+              "SQLExecDirect", "SQLExecute", "SQLFetch", "SQLFreeConnect",
+              "SQLFreeEnv", "SQLFreeStmt", "SQLGetCursorName",
+              "SQLNumResultCols", "SQLPrepare", "SQLRowCount",
+              "SQLSetCursorName", "SQLSetParam", "SQLTransact",
+              "SQLColumns", "SQLDriverConnect", "SQLGetConnectOption",
+              "SQLGetData", "SQLGetFunctions", "SQLGetInfo",
+              "SQLGetStmtOption", "SQLGetTypeInfo", "SQLParamData",
+              "SQLPutData", "SQLSetConnectOption", "SQLSetStmtOption",
+              "SQLSpecialColumns", "SQLStatistics", "SQLTables",
+              "SQLBrowseConnect", "SQLColumnPrivileges", "SQLDataSources",
+              "SQLDescribeParam", "SQLExtendedFetch", "SQLForeignKeys",
+              "SQLMoreResults", "SQLNativeSql", "SQLNumParams",
+              "SQLParamOptions", "SQLPrimaryKeys", "SQLProcedureColumns",
+              "SQLProcedures", "SQLSetPos", "SQLSetScrollOptions",
+              "SQLTablePrivileges", "SQLDrivers", "SQLBindParameter"]),
 ]
 
 ENTRY = re.compile(r"^\s*(\d+)\s+(\w+)((?:\s+-[\w=]+)*)\s+([\w@?$]+)")
@@ -158,6 +217,13 @@ def main():
                 continue
             if int(ordinal) >= 1000 and module in ("KERNEL", "USER", "GDI"):
                 continue
+            if int(ordinal) >= 500 and module in WINE_METHODS_FROM_500:
+                continue
+            # C++ members of Microsoft's own classes, and Wine's second
+            # names for one entry (in the OLE DLLs).
+            if "?" in name or (name.endswith("_dup") and
+                               module in WINE_METHODS_FROM_500):
+                continue
             # Wine has no code for a stub, but Windows has the function:
             # a program that calls one loads, and works on Windows.
             if kind in ("pascal", "stub"):
@@ -168,8 +234,10 @@ def main():
                 sym = name
             else:
                 continue
+            sym = RENAMED.get((module, sym.upper()), sym)
             # Every DLL has its own WEP, which its startup code exports.
-            if sym != "WEP":
+            if sym != "WEP" and not (module in NEW_MODULES and
+                                     sym in OWN_ENTRIES):
                 entries.append((module, sym, ordinal))
     # A function that KERNEL has too came there later (the registry
     # functions moved from SHELL to KERNEL in Windows 95): import it from
@@ -185,6 +253,10 @@ def main():
             module = m
             print(f"# {module}")
         print(f"import {sym} {m}.{ordinal}")
+    for m, names in BY_NAME:
+        print(f"# {m} (by name)")
+        for name in names:
+            print(f"import {name.upper()} {m}.{name.upper()}")
 
 if __name__ == "__main__":
     main()

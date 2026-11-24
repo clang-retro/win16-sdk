@@ -262,6 +262,7 @@ none of Microsoft's text is used):
 | `stress.h` | STRESS: using up resources, for testing |
 | `gdidefs.h`, `dibeng.h` | display drivers: the GDI driver interface and the Windows 95 DIB engine (DIBENG) |
 | `winsock.h` | Windows Sockets 1.1 (WINSOCK.DLL, which comes with the network software) |
+| `ole.h`, `ole2.h`, `compobj.h`, `storage.h`, `dispatch.h`, `olenls.h`, `vfw.h`, `wing.h`, `sql.h`, `sqlext.h`, `mapi.h` | the redistributable DLLs: OLE 1 and 2, Video for Windows, WinG, ODBC 2.0 and Simple MAPI (see [docs/headers.md](docs/headers.md)) |
 
 - `STRICT` makes each kind of handle a distinct type (a near pointer to a
   structure of its own), and the callback types prototypes, so the compiler
@@ -345,6 +346,8 @@ They build each test for the small, medium, compact and large models at
 - `tests/win16/api.c`: `WinMain` and KERNEL and USER calls through
   `<windows.h>`.
 - `tests/win16/sizes.c`: the size of each structure in the headers.
+- `tests/win16/ole.c`: the OLE 2 task allocator, GUIDs, `BSTR`s and
+  `VARIANT`s (COMPOBJ and OLE2DISP).
 - `tests/win16/windowsx.c`: every message cracker splits a message and its
   forwarder packs it back the same way, with and without `STRICT`, and
   the control macros compile.

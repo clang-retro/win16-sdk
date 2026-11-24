@@ -36,14 +36,17 @@ ROOT = os.path.dirname(HERE)
 HEADERS = [
     "windows.h", "windowsx.h", "commdlg.h", "cderr.h", "dlgs.h",
     "shellapi.h", "mmsystem.h", "toolhelp.h", "ver.h", "lzexpand.h",
-    "dde.h", "ddeml.h", "print.h", "stress.h", "winsock.h",
+    "dde.h", "ddeml.h", "print.h", "stress.h", "winsock.h", "wing.h",
+    "ole.h", "compobj.h", "scode.h", "storage.h", "ole2.h", "olenls.h",
+    "dispatch.h", "vfw.h", "sql.h", "sqlext.h", "mapi.h",
 ]
 
 HEADERS = [h for h in HEADERS
            if os.path.exists(os.path.join(ROOT, "include", h))]
 
 # Defined by the program or DLL, not imported.
-NOT_IMPORTED = {"WinMain", "LibMain", "WEP"}
+NOT_IMPORTED = {"WinMain", "LibMain", "WEP", "DllGetClassObject",
+                "DllCanUnloadNow"}
 
 VERSIONS = [("1.01", 0x0101, "windows100.lnk"),
             ("2.03", 0x0203, "windows200.lnk"),
@@ -66,13 +69,32 @@ SPECS = {
     "DDEML": "ddeml.dll16/ddeml.dll16.spec",
     "STRESS": "stress.dll16/stress.dll16.spec",
     "WINSOCK": "winsock.dll16/winsock.dll16.spec",
+    "OLECLI": "olecli.dll16/olecli.dll16.spec",
+    "OLESVR": "olesvr.dll16/olesvr.dll16.spec",
+    "COMPOBJ": "compobj.dll16/compobj.dll16.spec",
+    "STORAGE": "storage.dll16/storage.dll16.spec",
+    "OLE2": "ole2.dll16/ole2.dll16.spec",
+    "OLE2DISP": "ole2disp.dll16/ole2disp.dll16.spec",
+    "OLE2NLS": "ole2nls.dll16/ole2nls.dll16.spec",
+    "TYPELIB": "typelib.dll16/typelib.dll16.spec",
+    "MSVIDEO": "msvideo.dll16/msvideo.dll16.spec",
+    "AVIFILE": "avifile.dll16/avifile.dll16.spec",
+    "WING": "wing.dll16/wing.dll16.spec",
 }
+
+# Modules that Wine does not have. The programs import their functions by
+# name, so only the import list is checked.
+NOT_IN_WINE = {"MAPI", "ODBC"}
+BY_NAME_ONLY = set()  # filled by import_list
 
 ARG_SIZE = {"word": 2, "s_word": 2, "long": 4, "ptr": 4, "str": 4,
             "segptr": 4, "segstr": 4}
 
 # Wine's spec is wrong or looser than the documented API for these.
 SPEC_EXCEPTIONS = {
+    "WINGCREATEHALFTONEBRUSH",  # the colour is a COLORREF (long)
+    "LCMAPSTRINGA",             # the LCID is a long, as in Wine's C source
+    "AVISave",                  # a stub in Wine, so it has no calling convention
 }
 
 # Constants whose 16-bit value is not the 32-bit one.
@@ -98,6 +120,9 @@ DIFFERENT_IN_WIN16 = {
     "SM_CMETRICS",          # the number of metrics
     "WM_MOUSELAST",         # no WM_MOUSEWHEEL
     "HKEY_CLASSES_ROOT",    # 1
+    "ODBCVER",              # ODBC 2.0
+    "FADF_RESERVED",        # 0xF0E8: OLE 2.0 had no FADF_RECORD and so on
+    "NORM_IGNOREWIDTH", "NORM_IGNOREKANATYPE",  # OLE2NLS: 0x0008, 0x0040
 }
 
 # Groups of constants that 16-bit Windows numbers its own way.
@@ -120,7 +145,15 @@ RETURNS_WORD = {
     "VerLanguageName", "VerQueryValue",
     # WINSOCK: int, where Wine's functions return a DWORD.
     "gethostname", "WSAStartup", "WSACleanup",
+    # OLE2NLS: int, where Wine's spec says long.
+    "GetLocaleInfoA",
+    # MSVIDEO: HWND and BOOL from cdecl functions.
+    "MCIWndCreate", "MCIWndRegisterClass",
 }
+
+# Modules whose results are an OLESTATUS, a 16-bit enum, where Wine's
+# functions return a long.
+WORD_RESULT_MODULES = {"OLECLI", "OLESVR"}
 
 # Functions that return a far pointer, where Wine's spec says -ret16.
 RETURNS_DWORD = {
@@ -170,9 +203,11 @@ def spec_entries(dlls):
 def import_list(path):
     names = set()
     for line in open(path):
-        m = re.match(r"import (\S+) (\w+)\.(\d+)", line)
+        m = re.match(r"import (\S+) (\w+)\.(\w+)", line)
         if m:
             names.add(m.group(1))
+            if m.group(2) in NOT_IN_WINE:
+                BY_NAME_ONLY.add(m.group(1))
     return names
 
 
@@ -325,7 +360,10 @@ def check_functions(args, problems):
             where = f"{name} (Windows {vname})"
             if sym not in imports and name.upper() not in imports:
                 problems.append(f"{where}: not in lib/{lnk}")
-            e = spec.get(key) or spec.get(name.upper())
+            if name.upper() in BY_NAME_ONLY:
+                continue
+            e = (spec.get(key) or spec.get(name.upper()) or
+                 spec.get("_" + name.upper()))
             if e is None:
                 problems.append(f"{where}: not in Wine's specs")
                 continue
@@ -347,7 +385,8 @@ def check_functions(args, problems):
                 continue
             if r == 4 and ret16 and name not in RETURNS_DWORD:
                 problems.append(f"{where}: returns 4 bytes, Wine 2")
-            if r == 2 and not ret16 and name not in RETURNS_WORD:
+            if r == 2 and not ret16 and name not in RETURNS_WORD and \
+                    module not in WORD_RESULT_MODULES:
                 problems.append(f"{where}: returns 2 bytes, Wine 4")
     # A function left out for a version that has it.
     newest = VERSIONS[-1][0]
@@ -413,7 +452,10 @@ def check_constants(args, problems):
                 "#include <shellapi.h>\n#include <mmsystem.h>\n"
                 "#include <lzexpand.h>\n#include <dde.h>\n"
                 "#include <ddeml.h>\n#include <winsock.h>\n"
-                "#include <tlhelp32.h>\n#include <winver.h>\n")
+                "#include <tlhelp32.h>\n#include <winver.h>\n"
+                "#include <ole2.h>\n#include <oleauto.h>\n#include <ole.h>\n"
+                "#include <vfw.h>\n#include <sql.h>\n#include <sqlext.h>\n"
+                "#include <mapi.h>\n")
         theirs_src = f.name
     try:
         ours = macros([args.clang, "--target=i8086-pc-win16", "-E", "-dM",
