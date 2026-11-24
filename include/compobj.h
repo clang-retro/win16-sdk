@@ -74,8 +74,41 @@ typedef ULONG FAR *LPULONG;
 typedef unsigned short USHORT;
 typedef short SHORT;
 typedef char CHAR;
+/* In C++ WCHAR is wchar_t, so that L"" strings are WCHAR strings; in C
+ * wchar_t is unsigned short, which is WORD. */
+#ifdef __cplusplus
+typedef wchar_t WCHAR;
+#else
 typedef WORD WCHAR;
+#endif
 
+/* 64-bit integers in two halves. Where the compiler has anonymous
+ * structures (C++ and C11), they are unions with QuadPart too, as in
+ * Win32. */
+#if defined(__cplusplus) || (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L)
+typedef union _LARGE_INTEGER {
+  struct {
+    DWORD LowPart;
+    LONG HighPart;
+  };
+  struct {
+    DWORD LowPart;
+    LONG HighPart;
+  } u;
+  long long QuadPart;
+} LARGE_INTEGER, FAR *PLARGE_INTEGER;
+typedef union _ULARGE_INTEGER {
+  struct {
+    DWORD LowPart;
+    DWORD HighPart;
+  };
+  struct {
+    DWORD LowPart;
+    DWORD HighPart;
+  } u;
+  unsigned long long QuadPart;
+} ULARGE_INTEGER, FAR *PULARGE_INTEGER;
+#else
 typedef struct _LARGE_INTEGER {
   DWORD LowPart;
   LONG HighPart;
@@ -84,6 +117,7 @@ typedef struct _ULARGE_INTEGER {
   DWORD LowPart;
   DWORD HighPart;
 } ULARGE_INTEGER, FAR *PULARGE_INTEGER;
+#endif
 
 #ifndef _FILETIME_
 #define _FILETIME_

@@ -26,6 +26,7 @@ nav:
   - "Using the SDK": using.md
   - "Windows versions": versions.md
   - "Headers": headers.md
+  - "QuickWin console window": quickwin.md
   - "Building the libraries": building.md
   - "Tests and CI": tests.md
   - "Redistributing": redistributing.md

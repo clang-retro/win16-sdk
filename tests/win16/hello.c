@@ -24,6 +24,25 @@ int main(int argc, char **argv) {
   memset(p, 'x', 1000);
   char *q = malloc(8000);
   CHECK(q != NULL);
+#if defined(__COMPACT__) || defined(__LARGE__)
+  /* With far data the heap grows past one 64 KiB segment. */
+  {
+    static char *blocks[160];
+    int i, n = 0;
+    for (i = 0; i < 160; i++) {
+      blocks[i] = malloc(1000);
+      if (blocks[i]) {
+        memset(blocks[i], i, 1000);
+        n++;
+      }
+    }
+    CHECK(n == 160);
+    for (i = 0; i < n; i++)
+      CHECK((unsigned char)blocks[i][999] == (unsigned char)i);
+    for (i = 0; i < n; i++)
+      free(blocks[i]);
+  }
+#endif
   free(q);
   free(p);
 

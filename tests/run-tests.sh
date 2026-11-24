@@ -150,6 +150,19 @@ for m in ${MODELS:-small medium compact large}; do
         run "cxxdll-$t" sh -c "cd cxxdll-$t && '$WINE' app.exe"
       fi
     fi
+    # C++ exceptions thrown and caught inside a DLL. Near-model DLLs use
+    # the libraries of <model>/dll/eh, the others those of <model>/eh.
+    ehlib=$SYSROOT/lib/win16/$m/eh/libc++.a
+    case $m in small|medium) ehlib=$SYSROOT/lib/win16/$m/dll/eh/libc++.a ;; esac
+    if [ -z "$NO_CXX" ] && [ -f "$ehlib" ]; then
+      mkdir -p "ehdll-$t"
+      cxx="$BIN/clang++ --target=i8086-pc-win16 -mcmodel=$m --sysroot=$SYSROOT $ldflag -$o"
+      if build "ehdll-$t" $cxx -shared -fexceptions "$tests/ehdll.cpp" -o "ehdll-$t/EHDLL.DLL" &&
+         python3 "$scripts/win16-imports.py" "ehdll-$t/EHDLL.DLL" >"ehdll-$t/ehdll.lnk" &&
+         build "ehdllapp-$t" $cc "$tests/ehdllapp.c" "-Wl,@ehdll-$t/ehdll.lnk" -o "ehdll-$t/app.exe"; then
+        run "ehdll-$t" sh -c "cd ehdll-$t && '$WINE' app.exe"
+      fi
+    fi
     # Resources, compiled by llvm-rc.
     if build "rc-$t" "$BIN/llvm-rc" -win16 -I "$SYSROOT/include" -I "$tests" \
          -FO "res-$t.res" "$tests/res.rc" &&
@@ -159,6 +172,16 @@ for m in ${MODELS:-small medium compact large}; do
     if [ -n "$gui" ]; then
       build "gui-$t" $cc "$tests/gui.c" -o "gui-$t.exe" &&
         run "gui-$t" $gui "$WINE" "gui-$t.exe"
+    fi
+    # The QuickWin console window (-mquickwin). The program writes its
+    # result to quickwin.out, because its standard output is the window.
+    if [ -n "$gui" ] && [ -f "$SYSROOT/lib/win16/$m/quickwin.obj" ]; then
+      mkdir -p "quickwin-$t"
+      rm -f "quickwin-$t/quickwin.out"
+      build "quickwin-$t" $cc -mquickwin "$tests/quickwin.c" \
+          -o "quickwin-$t/qw.exe" &&
+        run "quickwin-$t" $gui sh -c \
+          "cd quickwin-$t && '$WINE' qw.exe; cat quickwin.out"
     fi
   done
 done
