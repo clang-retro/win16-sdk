@@ -15,6 +15,13 @@ static int failures;
     }                                                                          \
   } while (0)
 
+// The Win32 members of the union do not change the size of a VARIANT.
+static_assert(sizeof(VARIANT) == 16, "VARIANT");
+static_assert(sizeof(CY) == 8, "CY");
+static_assert(sizeof(TYPEDESC) == 6, "TYPEDESC");
+static_assert(sizeof(ELEMDESC) == 12, "ELEMDESC");
+static_assert(sizeof(TYPEATTR) == 70, "TYPEATTR");
+
 /* Gives TRUE when the two IIDs are the same, through a REFIID. */
 static BOOL SameIID(REFIID a, REFIID b) { return IsEqualIID(a, b); }
 
@@ -39,6 +46,9 @@ int PASCAL WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   CHECK(!SameIID(IID_IUnknown, IID_IClassFactory));
   CHECK(IID_IUnknown == IID_IUnknown);
   CHECK(IID_IUnknown != IID_IClassFactory);
+  /* TYPELIB and OLE2DISP export these IIDs. */
+  CHECK(IID_ITypeInfo.Data1 == 0x00020401L);
+  CHECK(IID_IErrorInfo.Data1 == 0x1CF2B120L);
 
   VARIANT v;
   VariantInit(&v);

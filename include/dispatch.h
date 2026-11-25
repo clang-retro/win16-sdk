@@ -28,6 +28,18 @@
 #define VT_VARIANT 12
 #define VT_UNKNOWN 13
 #define VT_UI1 17
+/* The types of Win32 OLE Automation. 16-bit OLE 2 does not make,
+ * convert or marshal them; they are here, with their union members below,
+ * for code that is shared with Win32. They do not change the size of a
+ * VARIANT. */
+#define VT_I1 16
+#define VT_UI2 18
+#define VT_UI4 19
+#define VT_I8 20
+#define VT_UI8 21
+#define VT_INT 22
+#define VT_UINT 23
+#define VT_TYPEMASK 0x0FFF
 #define VT_VECTOR 0x1000
 #define VT_ARRAY 0x2000
 #define VT_BYREF 0x4000
@@ -99,10 +111,22 @@ typedef long DISPID;
 typedef DISPID MEMBERID;
 
 /* Currency: a 64-bit integer, scaled by 10000. */
+/* Where the compiler has anonymous structures (C++ and C11), CY is a
+ * union with int64 too, as in Win32. */
+#if defined(__cplusplus) || (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L)
+typedef union tagCY {
+  struct {
+    unsigned long Lo;
+    long Hi;
+  };
+  long long int64;
+} CY;
+#else
 typedef struct tagCY {
   unsigned long Lo;
   long Hi;
 } CY;
+#endif
 typedef CY CURRENCY;
 
 typedef struct tagSAFEARRAYBOUND {
@@ -179,6 +203,20 @@ struct tagVARIANT {
     SAFEARRAY FAR *FAR *pparray;
     VARIANT FAR *pvarVal;
     void FAR *byref;
+    /* Win32 members (see VT_I1). */
+    char cVal;
+    unsigned short uiVal;
+    unsigned long ulVal;
+    int intVal;
+    unsigned int uintVal;
+    long long llVal;
+    unsigned long long ullVal;
+    VARIANT_BOOL FAR *pboolVal;
+    char FAR *pcVal;
+    unsigned short FAR *puiVal;
+    unsigned long FAR *pulVal;
+    int FAR *pintVal;
+    unsigned int FAR *puintVal;
   } __VARIANT_UNION;
 };
 
@@ -252,6 +290,366 @@ DECLARE_INTERFACE_(IEnumVARIANT, IUnknown) {
   STDMETHOD(Clone)(THIS_ IEnumVARIANT FAR *FAR *) PURE;
 };
 
+/* Type information (TYPELIB.DLL). The strings are char, as all strings
+ * of 16-bit OLE 2. An enum has the size of an int (16 bits). */
+DEFINE_GUID(IID_ITypeInfo, 0x00020401L, 0, 0, 0xC0, 0, 0, 0, 0, 0, 0, 0x46);
+DEFINE_GUID(IID_ITypeLib, 0x00020402L, 0, 0, 0xC0, 0, 0, 0, 0, 0, 0, 0x46);
+DEFINE_GUID(IID_ITypeComp, 0x00020403L, 0, 0, 0xC0, 0, 0, 0, 0, 0, 0, 0x46);
+DEFINE_GUID(IID_ICreateTypeInfo, 0x00020405L, 0, 0, 0xC0, 0, 0, 0, 0, 0, 0,
+            0x46);
+DEFINE_GUID(IID_ICreateTypeLib, 0x00020406L, 0, 0, 0xC0, 0, 0, 0, 0, 0, 0,
+            0x46);
+DEFINE_GUID(IID_IErrorInfo, 0x1CF2B120L, 0x547D, 0x101B, 0x8E, 0x65, 0x08,
+            0x00, 0x2B, 0x2B, 0xD1, 0x19);
+DEFINE_GUID(IID_ICreateErrorInfo, 0x22F03340L, 0x547D, 0x101B, 0x8E, 0x65,
+            0x08, 0x00, 0x2B, 0x2B, 0xD1, 0x19);
+DEFINE_GUID(IID_ISupportErrorInfo, 0xDF0B3D60L, 0x548F, 0x101B, 0x8E, 0x65,
+            0x08, 0x00, 0x2B, 0x2B, 0xD1, 0x19);
+
+typedef interface ITypeComp FAR *LPTYPECOMP;
+typedef interface IErrorInfo FAR *LPERRORINFO;
+typedef interface ICreateErrorInfo FAR *LPCREATEERRORINFO;
+typedef interface ISupportErrorInfo FAR *LPSUPPORTERRORINFO;
+typedef unsigned long HREFTYPE;
+
+#define MEMBERID_NIL DISPID_UNKNOWN
+#define ID_DEFAULTINST (-2)
+
+typedef enum tagSYSKIND { SYS_WIN16, SYS_WIN32, SYS_MAC } SYSKIND;
+
+typedef enum tagTYPEKIND {
+  TKIND_ENUM,
+  TKIND_RECORD,
+  TKIND_MODULE,
+  TKIND_INTERFACE,
+  TKIND_DISPATCH,
+  TKIND_COCLASS,
+  TKIND_ALIAS,
+  TKIND_UNION,
+  TKIND_MAX
+} TYPEKIND;
+
+typedef enum tagFUNCKIND {
+  FUNC_VIRTUAL,
+  FUNC_PUREVIRTUAL,
+  FUNC_NONVIRTUAL,
+  FUNC_STATIC,
+  FUNC_DISPATCH
+} FUNCKIND;
+
+typedef enum tagINVOKEKIND {
+  INVOKE_FUNC = 1,
+  INVOKE_PROPERTYGET = 2,
+  INVOKE_PROPERTYPUT = 4,
+  INVOKE_PROPERTYPUTREF = 8
+} INVOKEKIND;
+
+typedef enum tagCALLCONV {
+  CC_CDECL = 1,
+  CC_MSCPASCAL,
+  CC_PASCAL = CC_MSCPASCAL,
+  CC_MACPASCAL,
+  CC_STDCALL,
+  CC_RESERVED,
+  CC_SYSCALL,
+  CC_MPWCDECL,
+  CC_MPWPASCAL,
+  CC_MAX
+} CALLCONV;
+
+typedef enum tagVARKIND {
+  VAR_PERINSTANCE,
+  VAR_STATIC,
+  VAR_CONST,
+  VAR_DISPATCH
+} VARKIND;
+
+typedef enum tagDESCKIND {
+  DESCKIND_NONE,
+  DESCKIND_FUNCDESC,
+  DESCKIND_VARDESC,
+  DESCKIND_TYPECOMP,
+  DESCKIND_IMPLICITAPPOBJ,
+  DESCKIND_MAX
+} DESCKIND;
+
+#define TYPEFLAG_FAPPOBJECT 0x0001
+#define TYPEFLAG_FCANCREATE 0x0002
+#define TYPEFLAG_FLICENSED 0x0004
+#define TYPEFLAG_FPREDECLID 0x0008
+#define TYPEFLAG_FHIDDEN 0x0010
+#define TYPEFLAG_FCONTROL 0x0020
+#define TYPEFLAG_FDUAL 0x0040
+#define TYPEFLAG_FNONEXTENSIBLE 0x0080
+#define TYPEFLAG_FOLEAUTOMATION 0x0100
+
+#define FUNCFLAG_FRESTRICTED 0x0001
+#define FUNCFLAG_FSOURCE 0x0002
+#define FUNCFLAG_FBINDABLE 0x0004
+#define FUNCFLAG_FREQUESTEDIT 0x0008
+#define FUNCFLAG_FDISPLAYBIND 0x0010
+#define FUNCFLAG_FDEFAULTBIND 0x0020
+#define FUNCFLAG_FHIDDEN 0x0040
+
+#define VARFLAG_FREADONLY 0x0001
+#define VARFLAG_FSOURCE 0x0002
+#define VARFLAG_FBINDABLE 0x0004
+#define VARFLAG_FREQUESTEDIT 0x0008
+#define VARFLAG_FDISPLAYBIND 0x0010
+#define VARFLAG_FDEFAULTBIND 0x0020
+#define VARFLAG_FHIDDEN 0x0040
+
+#define IMPLTYPEFLAG_FDEFAULT 0x1
+#define IMPLTYPEFLAG_FSOURCE 0x2
+#define IMPLTYPEFLAG_FRESTRICTED 0x4
+
+#define LIBFLAG_FRESTRICTED 0x01
+#define LIBFLAG_FCONTROL 0x02
+#define LIBFLAG_FHIDDEN 0x04
+
+#define IDLFLAG_NONE 0
+#define IDLFLAG_FIN 0x1
+#define IDLFLAG_FOUT 0x2
+#define IDLFLAG_FLCID 0x4
+#define IDLFLAG_FRETVAL 0x8
+#define PARAMFLAG_NONE 0
+#define PARAMFLAG_FIN 0x1
+#define PARAMFLAG_FOUT 0x2
+#define PARAMFLAG_FLCID 0x4
+#define PARAMFLAG_FRETVAL 0x8
+#define PARAMFLAG_FOPT 0x10
+#define PARAMFLAG_FHASDEFAULT 0x20
+
+typedef struct tagTYPEDESC {
+  union {
+    struct tagTYPEDESC FAR *lptdesc; /* VT_PTR and VT_SAFEARRAY */
+    struct tagARRAYDESC FAR *lpadesc; /* VT_CARRAY */
+    HREFTYPE hreftype; /* VT_USERDEFINED */
+  } __VARIANT_UNION;
+  VARTYPE vt;
+} TYPEDESC;
+
+typedef struct tagARRAYDESC {
+  TYPEDESC tdescElem;
+  unsigned short cDims;
+  SAFEARRAYBOUND rgbounds[1];
+} ARRAYDESC;
+
+typedef struct tagIDLDESC {
+  BSTR bstrIDLInfo;
+  unsigned short wIDLFlags;
+} IDLDESC, FAR *LPIDLDESC;
+
+typedef struct tagPARAMDESCEX {
+  unsigned long cBytes;
+  VARIANT varDefaultValue;
+} PARAMDESCEX, FAR *LPPARAMDESCEX;
+
+typedef struct tagPARAMDESC {
+  LPPARAMDESCEX pparamdescex;
+  unsigned short wParamFlags;
+} PARAMDESC, FAR *LPPARAMDESC;
+
+/* IDLDESC and PARAMDESC have the same layout. */
+typedef struct tagELEMDESC {
+  TYPEDESC tdesc;
+  union {
+    IDLDESC idldesc;
+    PARAMDESC paramdesc;
+  } __VARIANT_UNION;
+} ELEMDESC, FAR *LPELEMDESC;
+
+typedef struct tagTYPEATTR {
+  GUID guid;
+  LCID lcid;
+  unsigned long dwReserved;
+  MEMBERID memidConstructor;
+  MEMBERID memidDestructor;
+  char FAR *lpstrSchema;
+  unsigned long cbSizeInstance;
+  TYPEKIND typekind;
+  unsigned short cFuncs;
+  unsigned short cVars;
+  unsigned short cImplTypes;
+  unsigned short cbSizeVft;
+  unsigned short cbAlignment;
+  unsigned short wTypeFlags;
+  unsigned short wMajorVerNum;
+  unsigned short wMinorVerNum;
+  TYPEDESC tdescAlias;
+  IDLDESC idldescType;
+} TYPEATTR, FAR *LPTYPEATTR;
+
+typedef struct tagFUNCDESC {
+  MEMBERID memid;
+  SCODE FAR *lprgscode;
+  ELEMDESC FAR *lprgelemdescParam;
+  FUNCKIND funckind;
+  INVOKEKIND invkind;
+  CALLCONV callconv;
+  short cParams;
+  short cParamsOpt;
+  short oVft;
+  short cScodes;
+  ELEMDESC elemdescFunc;
+  unsigned short wFuncFlags;
+} FUNCDESC, FAR *LPFUNCDESC;
+
+typedef struct tagVARDESC {
+  MEMBERID memid;
+  char FAR *lpstrSchema;
+  union {
+    unsigned long oInst; /* VAR_PERINSTANCE */
+    VARIANT FAR *lpvarValue; /* VAR_CONST */
+  } __VARIANT_UNION;
+  ELEMDESC elemdescVar;
+  unsigned short wVarFlags;
+  VARKIND varkind;
+} VARDESC, FAR *LPVARDESC;
+
+typedef struct tagTLIBATTR {
+  GUID guid;
+  LCID lcid;
+  SYSKIND syskind;
+  unsigned short wMajorVerNum;
+  unsigned short wMinorVerNum;
+  unsigned short wLibFlags;
+} TLIBATTR, FAR *LPTLIBATTR;
+
+typedef union tagBINDPTR {
+  FUNCDESC FAR *lpfuncdesc;
+  VARDESC FAR *lpvardesc;
+  interface ITypeComp FAR *lptcomp;
+} BINDPTR, FAR *LPBINDPTR;
+
+#undef INTERFACE
+#define INTERFACE ITypeComp
+DECLARE_INTERFACE_(ITypeComp, IUnknown) {
+  STDMETHOD(QueryInterface)(THIS_ REFIID, LPVOID FAR *) PURE;
+  STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+  STDMETHOD_(ULONG, Release)(THIS) PURE;
+  STDMETHOD(Bind)(THIS_ char FAR *, unsigned long, unsigned short,
+                  interface ITypeInfo FAR *FAR *, DESCKIND FAR *,
+                  BINDPTR FAR *) PURE;
+  STDMETHOD(BindType)(THIS_ char FAR *, unsigned long,
+                      interface ITypeInfo FAR *FAR *, ITypeComp FAR *FAR *)
+  PURE;
+};
+
+#undef INTERFACE
+#define INTERFACE ITypeInfo
+DECLARE_INTERFACE_(ITypeInfo, IUnknown) {
+  STDMETHOD(QueryInterface)(THIS_ REFIID, LPVOID FAR *) PURE;
+  STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+  STDMETHOD_(ULONG, Release)(THIS) PURE;
+  STDMETHOD(GetTypeAttr)(THIS_ TYPEATTR FAR *FAR *) PURE;
+  STDMETHOD(GetTypeComp)(THIS_ ITypeComp FAR *FAR *) PURE;
+  STDMETHOD(GetFuncDesc)(THIS_ unsigned int, FUNCDESC FAR *FAR *) PURE;
+  STDMETHOD(GetVarDesc)(THIS_ unsigned int, VARDESC FAR *FAR *) PURE;
+  STDMETHOD(GetNames)(THIS_ MEMBERID, BSTR FAR *, unsigned int,
+                      unsigned int FAR *) PURE;
+  STDMETHOD(GetRefTypeOfImplType)(THIS_ unsigned int, HREFTYPE FAR *) PURE;
+  STDMETHOD(GetImplTypeFlags)(THIS_ unsigned int, int FAR *) PURE;
+  STDMETHOD(GetIDsOfNames)(THIS_ char FAR *FAR *, unsigned int,
+                           MEMBERID FAR *) PURE;
+  STDMETHOD(Invoke)(THIS_ void FAR *, MEMBERID, unsigned short,
+                    DISPPARAMS FAR *, VARIANT FAR *, EXCEPINFO FAR *,
+                    unsigned int FAR *) PURE;
+  STDMETHOD(GetDocumentation)(THIS_ MEMBERID, BSTR FAR *, BSTR FAR *,
+                              unsigned long FAR *, BSTR FAR *) PURE;
+  STDMETHOD(GetDllEntry)(THIS_ MEMBERID, INVOKEKIND, BSTR FAR *, BSTR FAR *,
+                         unsigned short FAR *) PURE;
+  STDMETHOD(GetRefTypeInfo)(THIS_ HREFTYPE, ITypeInfo FAR *FAR *) PURE;
+  STDMETHOD(AddressOfMember)(THIS_ MEMBERID, INVOKEKIND, void FAR *FAR *)
+  PURE;
+  STDMETHOD(CreateInstance)(THIS_ IUnknown FAR *, REFIID, void FAR *FAR *)
+  PURE;
+  STDMETHOD(GetMops)(THIS_ MEMBERID, BSTR FAR *) PURE;
+  STDMETHOD(GetContainingTypeLib)(THIS_ interface ITypeLib FAR *FAR *,
+                                  unsigned int FAR *) PURE;
+  STDMETHOD_(void, ReleaseTypeAttr)(THIS_ TYPEATTR FAR *) PURE;
+  STDMETHOD_(void, ReleaseFuncDesc)(THIS_ FUNCDESC FAR *) PURE;
+  STDMETHOD_(void, ReleaseVarDesc)(THIS_ VARDESC FAR *) PURE;
+};
+
+#undef INTERFACE
+#define INTERFACE ITypeLib
+DECLARE_INTERFACE_(ITypeLib, IUnknown) {
+  STDMETHOD(QueryInterface)(THIS_ REFIID, LPVOID FAR *) PURE;
+  STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+  STDMETHOD_(ULONG, Release)(THIS) PURE;
+  STDMETHOD_(unsigned int, GetTypeInfoCount)(THIS) PURE;
+  STDMETHOD(GetTypeInfo)(THIS_ unsigned int, ITypeInfo FAR *FAR *) PURE;
+  STDMETHOD(GetTypeInfoType)(THIS_ unsigned int, TYPEKIND FAR *) PURE;
+  STDMETHOD(GetTypeInfoOfGuid)(THIS_ REFGUID, ITypeInfo FAR *FAR *) PURE;
+  STDMETHOD(GetLibAttr)(THIS_ TLIBATTR FAR *FAR *) PURE;
+  STDMETHOD(GetTypeComp)(THIS_ ITypeComp FAR *FAR *) PURE;
+  STDMETHOD(GetDocumentation)(THIS_ int, BSTR FAR *, BSTR FAR *,
+                              unsigned long FAR *, BSTR FAR *) PURE;
+  STDMETHOD(IsName)(THIS_ char FAR *, unsigned long, int FAR *) PURE;
+  STDMETHOD(FindName)(THIS_ char FAR *, unsigned long, ITypeInfo FAR *FAR *,
+                      MEMBERID FAR *, unsigned short FAR *) PURE;
+  STDMETHOD_(void, ReleaseTLibAttr)(THIS_ TLIBATTR FAR *) PURE;
+};
+
+/* Error information (OLE2DISP 2.02 and later). */
+#undef INTERFACE
+#define INTERFACE IErrorInfo
+DECLARE_INTERFACE_(IErrorInfo, IUnknown) {
+  STDMETHOD(QueryInterface)(THIS_ REFIID, LPVOID FAR *) PURE;
+  STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+  STDMETHOD_(ULONG, Release)(THIS) PURE;
+  STDMETHOD(GetGUID)(THIS_ GUID FAR *) PURE;
+  STDMETHOD(GetSource)(THIS_ BSTR FAR *) PURE;
+  STDMETHOD(GetDescription)(THIS_ BSTR FAR *) PURE;
+  STDMETHOD(GetHelpFile)(THIS_ BSTR FAR *) PURE;
+  STDMETHOD(GetHelpContext)(THIS_ unsigned long FAR *) PURE;
+};
+
+#undef INTERFACE
+#define INTERFACE ICreateErrorInfo
+DECLARE_INTERFACE_(ICreateErrorInfo, IUnknown) {
+  STDMETHOD(QueryInterface)(THIS_ REFIID, LPVOID FAR *) PURE;
+  STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+  STDMETHOD_(ULONG, Release)(THIS) PURE;
+  STDMETHOD(SetGUID)(THIS_ REFGUID) PURE;
+  STDMETHOD(SetSource)(THIS_ char FAR *) PURE;
+  STDMETHOD(SetDescription)(THIS_ char FAR *) PURE;
+  STDMETHOD(SetHelpFile)(THIS_ char FAR *) PURE;
+  STDMETHOD(SetHelpContext)(THIS_ unsigned long) PURE;
+};
+
+#undef INTERFACE
+#define INTERFACE ISupportErrorInfo
+DECLARE_INTERFACE_(ISupportErrorInfo, IUnknown) {
+  STDMETHOD(QueryInterface)(THIS_ REFIID, LPVOID FAR *) PURE;
+  STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+  STDMETHOD_(ULONG, Release)(THIS) PURE;
+  STDMETHOD(InterfaceSupportsErrorInfo)(THIS_ REFIID) PURE;
+};
+
+/* The description of an interface for CreateDispTypeInfo. */
+typedef struct tagPARAMDATA {
+  char FAR *szName;
+  VARTYPE vt;
+} PARAMDATA, FAR *LPPARAMDATA;
+
+typedef struct tagMETHODDATA {
+  char FAR *szName;
+  PARAMDATA FAR *ppdata;
+  DISPID dispid;
+  unsigned int iMeth;
+  CALLCONV cc;
+  unsigned int cArgs;
+  unsigned short wFlags;
+  VARTYPE vtReturn;
+} METHODDATA, FAR *LPMETHODDATA;
+
+typedef struct tagINTERFACEDATA {
+  METHODDATA FAR *pmethdata;
+  unsigned int cMembers;
+} INTERFACEDATA, FAR *LPINTERFACEDATA;
+
 #if WINVER >= 0x030A
 /* Strings. */
 STDAPI_(BSTR) SysAllocString(const char FAR *);
@@ -320,6 +718,14 @@ STDAPI RegisterTypeLib(LPTYPELIB, char FAR *, char FAR *);
 STDAPI QueryPathOfRegTypeLib(REFGUID, unsigned short, unsigned short, LCID,
                              LPBSTR);
 STDAPI_(unsigned long) OaBuildVersion(void);
+STDAPI_(unsigned long) LHashValOfNameSys(SYSKIND, LCID, char FAR *);
+#define LHashValOfName(lcid, name) LHashValOfNameSys(SYS_WIN16, lcid, name)
+STDAPI CreateDispTypeInfo(INTERFACEDATA FAR *, LCID, ITypeInfo FAR *FAR *);
+
+/* Error information. */
+STDAPI SetErrorInfo(unsigned long, IErrorInfo FAR *);
+STDAPI GetErrorInfo(unsigned long, IErrorInfo FAR *FAR *);
+STDAPI CreateErrorInfo(ICreateErrorInfo FAR *FAR *);
 #endif
 
 /* The conversions of OLE2DISP. A string or an object source, and a string

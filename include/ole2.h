@@ -297,6 +297,9 @@ DECLARE_INTERFACE_(IOleWindow, IUnknown) {
 
 #if WINVER >= 0x030A
 STDAPI_(DWORD) OleBuildVersion(void);
+STDAPI OleRun(LPUNKNOWN);
+STDAPI_(BOOL) OleIsRunning(LPUNKNOWN);
+STDAPI OleLockRunning(LPUNKNOWN, BOOL, BOOL);
 STDAPI OleInitialize(LPMALLOC);
 STDAPI_(void) OleUninitialize(void);
 STDAPI OleSetClipboard(LPDATAOBJECT);
