@@ -69,6 +69,13 @@ WINE_METHODS_FROM_500 = {"COMPOBJ", "STORAGE", "OLE2"}
 RENAMED = {
     ("STORAGE", "STGCREATEDOCFILEA"): "STGCREATEDOCFILE",
     ("AVIFILE", "_AVISAVE"): "_AVISave",
+    # OLE 2 functions with the names of OLE 1 functions (OLECLI). ole2.h
+    # gives them these names with an assembler label.
+    ("OLE2", "OLECREATE"): "OLE2_OLECREATE",
+    ("OLE2", "OLECREATEFROMFILE"): "OLE2_OLECREATEFROMFILE",
+    ("OLE2", "OLEDRAW"): "OLE2_OLEDRAW",
+    ("OLE2", "OLESAVETOSTREAM"): "OLE2_OLESAVETOSTREAM",
+    ("OLE2", "OLELOADFROMSTREAM"): "OLE2_OLELOADFROMSTREAM",
 }
 
 # Entry points of the OLE, video and WinG DLLs that each DLL defines for

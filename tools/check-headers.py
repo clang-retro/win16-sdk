@@ -44,6 +44,13 @@ HEADERS = [
 HEADERS = [h for h in HEADERS
            if os.path.exists(os.path.join(ROOT, "include", h))]
 
+# OLE 1 (ole.h) and OLE 2 (ole2.h) have types and functions with the same
+# names, such as LPOLEOBJECT and OleCreate, so that a program includes
+# one of them. The checks compile each set on its own.
+OLE2_ONLY = {"ole2.h", "dispatch.h"}
+HEADER_SETS = [[h for h in HEADERS if h not in OLE2_ONLY],
+               [h for h in HEADERS if h != "ole.h"]]
+
 # Defined by the program or DLL, not imported.
 NOT_IMPORTED = {"WinMain", "LibMain", "WEP", "DllGetClassObject",
                 "DllCanUnloadNow"}
@@ -293,17 +300,19 @@ def functions(ast):
         params = [p["type"]["qualType"] for p in n.get("inner", [])
                   if p.get("kind") == "ParmVarDecl"]
         ret = return_type(ftype)
+        label = next((a.get("label") for a in n.get("inner", [])
+                      if a.get("kind") == "AsmLabelAttr"), None)
         out.append((n["name"], "pascal" in ftype, ret, params,
-                    n.get("variadic", False) or "..." in ftype))
+                    n.get("variadic", False) or "..." in ftype, label))
     return out
 
 
-def sizes(clang, version, types):
+def sizes(clang, version, types, headers):
     """sizeof each type, in the small model (where a near pointer is
-    2 bytes, so that a missing __far shows)."""
+    2 bytes, so that a missing __far shows), with the given headers."""
     types = sorted(set(types))
     with tempfile.NamedTemporaryFile("w", suffix=".c", delete=False) as f:
-        f.write("".join(f'#include <{h}>\n' for h in HEADERS))
+        f.write("".join(f'#include <{h}>\n' for h in headers))
         for i, t in enumerate(types):
             f.write(f"enum {{ __size_{i} = sizeof({c_type(t)}) }};\n")
         src = f.name
@@ -338,56 +347,12 @@ def check_functions(args, problems):
     for vname, winver, lnk in VERSIONS:
         version = vname
         imports = import_list(os.path.join(ROOT, "lib", lnk))
-        with tempfile.NamedTemporaryFile("w", suffix=".c",
-                                         delete=False) as f:
-            f.write("".join(f'#include <{h}>\n' for h in HEADERS))
-            src = f.name
-        try:
-            ast = run_clang(args.clang, version, src)
-        finally:
-            os.unlink(src)
-        funcs = functions(ast)
-        declared[vname] = {n for n, *_ in funcs}
+        declared[vname] = set()
         lists[vname] = imports
-        size = sizes(args.clang, version,
-                     [t for _, _, r, ps, _ in funcs for t in ps + [r]
-                      if t != "void"])
-        for name, pascal, ret, params, variadic in funcs:
-            if name in NOT_IMPORTED:
-                continue
-            sym = name.upper() if pascal else "_" + name
-            key = name.upper() if pascal else name
-            where = f"{name} (Windows {vname})"
-            if sym not in imports and name.upper() not in imports:
-                problems.append(f"{where}: not in lib/{lnk}")
-            if name.upper() in BY_NAME_ONLY:
-                continue
-            e = (spec.get(key) or spec.get(name.upper()) or
-                 spec.get("_" + name.upper()))
-            if e is None:
-                problems.append(f"{where}: not in Wine's specs")
-                continue
-            module, kind, ret16, want = e
-            if key in SPEC_EXCEPTIONS:
-                continue
-            if (kind == "pascal") != pascal:
-                problems.append(f"{where}: Wine has it {kind}")
-                continue
-            if kind == "varargs" or variadic or want is None:
-                continue
-            # A BYTE or char argument is pushed as a word.
-            have = [max(size.get(p) or 0, 2) for p in params]
-            if have != want:
-                problems.append(f"{where}: argument sizes {have}, "
-                                f"{module} has {want}")
-            r = 0 if ret == "void" else size.get(ret)
-            if module in NO_RESULT_SIZES:
-                continue
-            if r == 4 and ret16 and name not in RETURNS_DWORD:
-                problems.append(f"{where}: returns 4 bytes, Wine 2")
-            if r == 2 and not ret16 and name not in RETURNS_WORD and \
-                    module not in WORD_RESULT_MODULES:
-                problems.append(f"{where}: returns 2 bytes, Wine 4")
+        seen = set()
+        for headers in HEADER_SETS:
+            check_set(args, spec, vname, lnk, imports, headers, seen,
+                      declared[vname], problems)
     # A function left out for a version that has it.
     newest = VERSIONS[-1][0]
     for name in sorted(declared[newest]):
@@ -398,6 +363,67 @@ def check_functions(args, problems):
                 problems.append(f"{name}: Windows {vname} has it "
                                 f"(lib/{lnk}), but it is not declared for it")
                 break
+
+
+def check_set(args, spec, vname, lnk, imports, headers, seen, declared,
+              problems):
+    """Checks the functions of one header set for one Windows version.
+    seen has the functions that an earlier set checked already."""
+    with tempfile.NamedTemporaryFile("w", suffix=".c", delete=False) as f:
+        f.write("".join(f'#include <{h}>\n' for h in headers))
+        src = f.name
+    try:
+        ast = run_clang(args.clang, vname, src)
+    finally:
+        os.unlink(src)
+    funcs = functions(ast)
+    declared.update(n for n, *_ in funcs)
+    size = sizes(args.clang, vname,
+                 [t for _, _, r, ps, _, _ in funcs for t in ps + [r]
+                  if t != "void"], headers)
+    for name, pascal, ret, params, variadic, label in funcs:
+        if name in NOT_IMPORTED or (name, label) in seen:
+            continue
+        seen.add((name, label))
+        where = f"{name} (Windows {vname})"
+        # A function with an assembler label has that import name.
+        # Wine's specs know it by its own name in its module only.
+        if label is not None:
+            if label not in imports:
+                problems.append(f"{where}: {label} not in lib/{lnk}")
+            continue
+        sym = name.upper() if pascal else "_" + name
+        key = name.upper() if pascal else name
+        if sym not in imports and name.upper() not in imports:
+            problems.append(f"{where}: not in lib/{lnk}")
+        if name.upper() in BY_NAME_ONLY:
+            continue
+        e = (spec.get(key) or spec.get(name.upper()) or
+             spec.get("_" + name.upper()))
+        if e is None:
+            problems.append(f"{where}: not in Wine's specs")
+            continue
+        module, kind, ret16, want = e
+        if key in SPEC_EXCEPTIONS:
+            continue
+        if (kind == "pascal") != pascal:
+            problems.append(f"{where}: Wine has it {kind}")
+            continue
+        if kind == "varargs" or variadic or want is None:
+            continue
+        # A BYTE or char argument is pushed as a word.
+        have = [max(size.get(p) or 0, 2) for p in params]
+        if have != want:
+            problems.append(f"{where}: argument sizes {have}, "
+                            f"{module} has {want}")
+        r = 0 if ret == "void" else size.get(ret)
+        if module in NO_RESULT_SIZES:
+            continue
+        if r == 4 and ret16 and name not in RETURNS_DWORD:
+            problems.append(f"{where}: returns 4 bytes, Wine 2")
+        if r == 2 and not ret16 and name not in RETURNS_WORD and \
+                module not in WORD_RESULT_MODULES:
+            problems.append(f"{where}: returns 2 bytes, Wine 4")
 
 
 # A small evaluator for the constants of the two header sets.
@@ -444,7 +470,7 @@ def evaluate(name, defs, depth=0):
 
 def check_constants(args, problems):
     with tempfile.NamedTemporaryFile("w", suffix=".c", delete=False) as f:
-        f.write("".join(f'#include <{h}>\n' for h in HEADERS))
+        f.write("".join(f'#include <{h}>\n' for h in HEADER_SETS[1]))
         ours_src = f.name
     with tempfile.NamedTemporaryFile("w", suffix=".c", delete=False) as f:
         f.write("#include <windows.h>\n#include <commdlg.h>\n"

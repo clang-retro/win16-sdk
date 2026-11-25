@@ -49,6 +49,11 @@ int PASCAL WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   /* TYPELIB and OLE2DISP export these IIDs. */
   CHECK(IID_ITypeInfo.Data1 == 0x00020401L);
   CHECK(IID_IErrorInfo.Data1 == 0x1CF2B120L);
+  /* OLE2 exports the compound document IIDs, and the OLE 2 functions
+   * with OLE 1 names are imported from OLE2, not OLECLI. */
+  CHECK(IID_IOleObject.Data1 == 0x00000112L);
+  CHECK(IID_IMoniker.Data1 == 0x0000000FL);
+  CHECK((void FAR *)&OleDraw != NULL && (void FAR *)&OleCreate != NULL);
 
   VARIANT v;
   VariantInit(&v);
