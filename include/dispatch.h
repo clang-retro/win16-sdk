@@ -124,6 +124,17 @@ typedef interface IEnumVARIANT FAR *LPENUMVARIANT;
 typedef interface ITypeInfo FAR *LPTYPEINFO;
 typedef interface ITypeLib FAR *LPTYPELIB;
 
+/* The union of a VARIANT has no name in C++, as in the 16-bit OLE 2 SDK
+ * and in Win32, so that v.lVal works. In C, and with NONAMELESSUNION, it
+ * is named u (v.u.lVal). The V_ macros work in both forms. */
+#if defined(__cplusplus) && !defined(NONAMELESSUNION)
+#define __VARIANT_UNION
+#define __VARIANT_MEMBER(v, m) ((v).m)
+#else
+#define __VARIANT_UNION u
+#define __VARIANT_MEMBER(v, m) ((v).u.m)
+#endif
+
 typedef struct tagVARIANT VARIANT, VARIANTARG;
 typedef VARIANT FAR *LPVARIANT;
 typedef VARIANT FAR *LPVARIANTARG;
@@ -167,8 +178,29 @@ struct tagVARIANT {
     SAFEARRAY FAR *FAR *pparray;
     VARIANT FAR *pvarVal;
     void FAR *byref;
-  } u;
+  } __VARIANT_UNION;
 };
+
+#ifndef V_VT
+#define V_VT(X) ((X)->vt)
+#define V_ISBYREF(X) (V_VT(X) & VT_BYREF)
+#define V_ISARRAY(X) (V_VT(X) & VT_ARRAY)
+#define V_UI1(X) __VARIANT_MEMBER(*(X), bVal)
+#define V_I2(X) __VARIANT_MEMBER(*(X), iVal)
+#define V_I4(X) __VARIANT_MEMBER(*(X), lVal)
+#define V_R4(X) __VARIANT_MEMBER(*(X), fltVal)
+#define V_R8(X) __VARIANT_MEMBER(*(X), dblVal)
+#define V_BOOL(X) __VARIANT_MEMBER(*(X), boolVal)
+#define V_ERROR(X) __VARIANT_MEMBER(*(X), scode)
+#define V_CY(X) __VARIANT_MEMBER(*(X), cyVal)
+#define V_DATE(X) __VARIANT_MEMBER(*(X), date)
+#define V_BSTR(X) __VARIANT_MEMBER(*(X), bstrVal)
+#define V_UNKNOWN(X) __VARIANT_MEMBER(*(X), punkVal)
+#define V_DISPATCH(X) __VARIANT_MEMBER(*(X), pdispVal)
+#define V_ARRAY(X) __VARIANT_MEMBER(*(X), parray)
+#define V_BYREF(X) __VARIANT_MEMBER(*(X), byref)
+#define V_VARIANTREF(X) __VARIANT_MEMBER(*(X), pvarVal)
+#endif
 
 /* The arguments of IDispatch::Invoke, last argument first. */
 typedef struct tagDISPPARAMS {
