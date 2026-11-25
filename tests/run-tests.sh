@@ -89,6 +89,14 @@ for m in ${MODELS:-small medium compact large}; do
     # OLE 2: the task allocator, GUIDs, BSTRs and VARIANTs.
     build "ole-$t" $cc "$tests/ole.c" -o "ole-$t.exe" &&
       run "ole-$t" "$WINE" "ole-$t.exe"
+    # OLE 2 from C++: interfaces as classes (far code and data only),
+    # REFIID by reference, and the VARIANT union without a name.
+    case $m in
+      large | huge)
+        build "olecpp-$t" $cc -x c++ "$tests/olecpp.cpp" -x none -o "olecpp-$t.exe" &&
+          run "olecpp-$t" "$WINE" "olecpp-$t.exe"
+        ;;
+    esac
     # windowsx.h: the message crackers and forwarders, with and without
     # STRICT.
     build "windowsx-$t" $cc "$tests/windowsx.c" -o "windowsx-$t.exe" &&

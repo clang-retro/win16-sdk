@@ -103,6 +103,7 @@ typedef struct tagCY {
   unsigned long Lo;
   long Hi;
 } CY;
+typedef CY CURRENCY;
 
 typedef struct tagSAFEARRAYBOUND {
   unsigned long cElements;
@@ -320,6 +321,92 @@ STDAPI QueryPathOfRegTypeLib(REFGUID, unsigned short, unsigned short, LCID,
                              LPBSTR);
 STDAPI_(unsigned long) OaBuildVersion(void);
 #endif
+
+/* The conversions of OLE2DISP. A string or an object source, and a string
+ * result, take a locale and flags (VAR_ flags) too. */
+#define VAR_TIMEVALUEONLY 0x0001L
+#define VAR_DATEVALUEONLY 0x0002L
+STDAPI VarI2FromI4(long, short FAR *);
+STDAPI VarI2FromR4(float, short FAR *);
+STDAPI VarI2FromR8(double, short FAR *);
+STDAPI VarI2FromCy(CY, short FAR *);
+STDAPI VarI2FromDate(DATE, short FAR *);
+STDAPI VarI2FromStr(char FAR *, LCID, unsigned long, short FAR *);
+STDAPI VarI2FromDisp(IDispatch FAR *, LCID, short FAR *);
+STDAPI VarI2FromBool(VARIANT_BOOL, short FAR *);
+STDAPI VarI2FromUI1(unsigned char, short FAR *);
+STDAPI VarI4FromI2(short, long FAR *);
+STDAPI VarI4FromR4(float, long FAR *);
+STDAPI VarI4FromR8(double, long FAR *);
+STDAPI VarI4FromCy(CY, long FAR *);
+STDAPI VarI4FromDate(DATE, long FAR *);
+STDAPI VarI4FromStr(char FAR *, LCID, unsigned long, long FAR *);
+STDAPI VarI4FromDisp(IDispatch FAR *, LCID, long FAR *);
+STDAPI VarI4FromBool(VARIANT_BOOL, long FAR *);
+STDAPI VarI4FromUI1(unsigned char, long FAR *);
+STDAPI VarR4FromI2(short, float FAR *);
+STDAPI VarR4FromI4(long, float FAR *);
+STDAPI VarR4FromR8(double, float FAR *);
+STDAPI VarR4FromCy(CY, float FAR *);
+STDAPI VarR4FromDate(DATE, float FAR *);
+STDAPI VarR4FromStr(char FAR *, LCID, unsigned long, float FAR *);
+STDAPI VarR4FromDisp(IDispatch FAR *, LCID, float FAR *);
+STDAPI VarR4FromBool(VARIANT_BOOL, float FAR *);
+STDAPI VarR4FromUI1(unsigned char, float FAR *);
+STDAPI VarR8FromI2(short, double FAR *);
+STDAPI VarR8FromI4(long, double FAR *);
+STDAPI VarR8FromR4(float, double FAR *);
+STDAPI VarR8FromCy(CY, double FAR *);
+STDAPI VarR8FromDate(DATE, double FAR *);
+STDAPI VarR8FromStr(char FAR *, LCID, unsigned long, double FAR *);
+STDAPI VarR8FromDisp(IDispatch FAR *, LCID, double FAR *);
+STDAPI VarR8FromBool(VARIANT_BOOL, double FAR *);
+STDAPI VarR8FromUI1(unsigned char, double FAR *);
+STDAPI VarDateFromI2(short, DATE FAR *);
+STDAPI VarDateFromI4(long, DATE FAR *);
+STDAPI VarDateFromR4(float, DATE FAR *);
+STDAPI VarDateFromR8(double, DATE FAR *);
+STDAPI VarDateFromCy(CY, DATE FAR *);
+STDAPI VarDateFromStr(char FAR *, LCID, unsigned long, DATE FAR *);
+STDAPI VarDateFromDisp(IDispatch FAR *, LCID, DATE FAR *);
+STDAPI VarDateFromBool(VARIANT_BOOL, DATE FAR *);
+STDAPI VarDateFromUI1(unsigned char, DATE FAR *);
+STDAPI VarCyFromI2(short, CY FAR *);
+STDAPI VarCyFromI4(long, CY FAR *);
+STDAPI VarCyFromR4(float, CY FAR *);
+STDAPI VarCyFromR8(double, CY FAR *);
+STDAPI VarCyFromDate(DATE, CY FAR *);
+STDAPI VarCyFromStr(char FAR *, LCID, unsigned long, CY FAR *);
+STDAPI VarCyFromDisp(IDispatch FAR *, LCID, CY FAR *);
+STDAPI VarCyFromBool(VARIANT_BOOL, CY FAR *);
+STDAPI VarCyFromUI1(unsigned char, CY FAR *);
+STDAPI VarBstrFromI2(short, LCID, unsigned long, BSTR FAR *);
+STDAPI VarBstrFromI4(long, LCID, unsigned long, BSTR FAR *);
+STDAPI VarBstrFromR4(float, LCID, unsigned long, BSTR FAR *);
+STDAPI VarBstrFromR8(double, LCID, unsigned long, BSTR FAR *);
+STDAPI VarBstrFromCy(CY, LCID, unsigned long, BSTR FAR *);
+STDAPI VarBstrFromDate(DATE, LCID, unsigned long, BSTR FAR *);
+STDAPI VarBstrFromDisp(IDispatch FAR *, LCID, unsigned long, BSTR FAR *);
+STDAPI VarBstrFromBool(VARIANT_BOOL, LCID, unsigned long, BSTR FAR *);
+STDAPI VarBstrFromUI1(unsigned char, LCID, unsigned long, BSTR FAR *);
+STDAPI VarBoolFromI2(short, VARIANT_BOOL FAR *);
+STDAPI VarBoolFromI4(long, VARIANT_BOOL FAR *);
+STDAPI VarBoolFromR4(float, VARIANT_BOOL FAR *);
+STDAPI VarBoolFromR8(double, VARIANT_BOOL FAR *);
+STDAPI VarBoolFromDate(DATE, VARIANT_BOOL FAR *);
+STDAPI VarBoolFromCy(CY, VARIANT_BOOL FAR *);
+STDAPI VarBoolFromStr(char FAR *, LCID, unsigned long, VARIANT_BOOL FAR *);
+STDAPI VarBoolFromDisp(IDispatch FAR *, LCID, VARIANT_BOOL FAR *);
+STDAPI VarBoolFromUI1(unsigned char, VARIANT_BOOL FAR *);
+STDAPI VarUI1FromI2(short, unsigned char FAR *);
+STDAPI VarUI1FromI4(long, unsigned char FAR *);
+STDAPI VarUI1FromR4(float, unsigned char FAR *);
+STDAPI VarUI1FromR8(double, unsigned char FAR *);
+STDAPI VarUI1FromCy(CY, unsigned char FAR *);
+STDAPI VarUI1FromDate(DATE, unsigned char FAR *);
+STDAPI VarUI1FromStr(char FAR *, LCID, unsigned long, unsigned char FAR *);
+STDAPI VarUI1FromDisp(IDispatch FAR *, LCID, unsigned char FAR *);
+STDAPI VarUI1FromBool(VARIANT_BOOL, unsigned char FAR *);
 
 #ifdef __cplusplus
 }

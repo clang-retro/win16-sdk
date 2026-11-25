@@ -5,11 +5,16 @@
  *
  * The functions are FAR PASCAL (STDAPI); the methods of an interface are
  * FAR CDECL (STDMETHODCALLTYPE), with the interface pointer as their first
- * argument. Interface and data pointers are far. An interface is declared
- * as a structure that has a far pointer to its table of methods, in C and
- * in C++ alike, and is called as p->lpVtbl->Method(p, ...): the C++ ABI of
- * the compiler is not the one of Microsoft's 16-bit compiler, so an
- * interface is not a C++ class here. */
+ * argument. Interface and data pointers are far.
+ *
+ * In C, an interface is a structure that has a far pointer to its table
+ * of methods, called as p->lpVtbl->Method(p, ...). In C++ with far code
+ * and far data (the large and huge models), an interface is a class with
+ * pure virtual methods, called as p->Method(...): there the vtable
+ * pointer and the method pointers of a C++ object are far, as in the
+ * table of a COM object. In the other models a C++ vtable pointer or
+ * method pointer is near, thus C++ uses the C form there too. Define
+ * CINTERFACE to use the C form in C++ in all models. */
 #ifndef _COMPOBJ_H_
 #define _COMPOBJ_H_
 #define _INC_COMPOBJ
@@ -44,6 +49,19 @@
  *   };
  */
 #define interface struct
+#if defined(__cplusplus) && !defined(CINTERFACE) &&                            \
+    (defined(__LARGE__) || defined(__HUGE__))
+#define PURE = 0
+#define THIS_
+#define THIS void
+#define STDMETHOD(method) virtual HRESULT STDMETHODCALLTYPE method
+#define STDMETHOD_(type, method) virtual type STDMETHODCALLTYPE method
+#define DECLARE_INTERFACE(iface) interface iface
+#define DECLARE_INTERFACE_(iface, baseiface) interface iface : public baseiface
+#else
+#ifndef CINTERFACE
+#define CINTERFACE
+#endif
 #define PURE
 #define THIS_ INTERFACE FAR *This,
 #define THIS INTERFACE FAR *This
@@ -56,6 +74,7 @@
   typedef struct iface##Vtbl iface##Vtbl;                                      \
   struct iface##Vtbl
 #define DECLARE_INTERFACE_(iface, baseiface) DECLARE_INTERFACE(iface)
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -142,9 +161,17 @@ typedef GUID IID;
 typedef IID FAR *LPIID;
 typedef GUID CLSID;
 typedef CLSID FAR *LPCLSID;
+/* In C++ a GUID goes by reference, as in the 16-bit OLE 2 SDK; in C by
+ * pointer. Both pass a far pointer. */
+#ifdef __cplusplus
+typedef const GUID FAR &REFGUID;
+typedef const IID FAR &REFIID;
+typedef const CLSID FAR &REFCLSID;
+#else
 typedef const GUID FAR *REFGUID;
 typedef const IID FAR *REFIID;
 typedef const CLSID FAR *REFCLSID;
+#endif
 
 /* DEFINE_GUID declares a GUID that COMPOBJ.DLL (or another DLL) exports;
  * after #include <initguid.h> it defines it in the module instead. */
@@ -366,6 +393,15 @@ STDAPI DllGetClassObject(REFCLSID, REFIID, LPVOID FAR *);
 STDAPI DllCanUnloadNow(void);
 
 #ifdef __cplusplus
+}
+
+/* Compares two GUIDs (C++). */
+inline BOOL operator==(const GUID FAR &a, const GUID FAR &b) {
+  return IsEqualGUID(a, b);
+}
+/* Compares two GUIDs (C++). */
+inline BOOL operator!=(const GUID FAR &a, const GUID FAR &b) {
+  return !IsEqualGUID(a, b);
 }
 #endif
 #pragma pack(pop)
