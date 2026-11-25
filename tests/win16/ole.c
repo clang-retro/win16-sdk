@@ -43,6 +43,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show) {
   CHECK(v.vt == VT_EMPTY);
   v.vt = VT_BSTR;
   v.u.bstrVal = b;
+  CHECK(V_VT(&v) == VT_BSTR && V_BSTR(&v) == b);
   /* Wine has no VariantClear, so the string is freed here. */
   SysFreeString(v.u.bstrVal);
 
