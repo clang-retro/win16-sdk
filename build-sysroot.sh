@@ -13,6 +13,8 @@
 #                                           (Windows 95 display drivers)
 #   $SYSROOT/lib/win16/<model>/crt0.obj     program startup code
 #   $SYSROOT/lib/win16/<model>/libentry.obj DLL startup code
+#   $SYSROOT/lib/win16/<model>/quickwin.obj console window of a program
+#                                           with main() (clang -mquickwin)
 #   $SYSROOT/lib/win16/<model>/libc.a       C library with the Windows layer
 #   $SYSROOT/lib/win16/<model>/libclang_rt.builtins.a, libc++.a, libc++abi.a
 #   $SYSROOT/lib/win16/<model>/dll/         the libraries again for DLLs in
@@ -76,6 +78,9 @@ for v in $variants; do
     cp "$i/lib/libc.a" "$d/"
   else
     cp "$i/lib/crt0.obj" "$i/lib/libentry.obj" "$i/lib/libc.a" "$d/"
+    # The QuickWin console window, which -mquickwin links after crt0.obj.
+    "$BIN/clang" --target=i8086-pc-win16 -mcmodel=$m --sysroot="$SYSROOT" \
+      -Os -Wall -c "$here/quickwin/quickwin.c" -o "$d/quickwin.obj"
   fi
 done
 done

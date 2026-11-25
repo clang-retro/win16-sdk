@@ -33,10 +33,11 @@ A sysroot built with it holds, next to the DOS libraries:
 <sysroot>/include/windows.h, windowsx.h, commdlg.h, ...
 <sysroot>/lib/win16/windows*.lnk, dibeng.lnk
 <sysroot>/share/licenses/win16-sdk/
-<sysroot>/lib/win16/<model>/       crt0.obj, libentry.obj (DLLs), libc.a,
+<sysroot>/lib/win16/<model>/       crt0.obj, libentry.obj (DLLs), quickwin.obj, libc.a,
                                    libclang_rt.builtins.a, libc++.a, libc++abi.a
 <sysroot>/lib/win16/<model>/dll/   the libraries again for DLLs in the
-                                   small and medium models
+                                   small and medium models (dll/eh: with
+                                   C++ exceptions)
 ```
 
 
@@ -144,8 +145,14 @@ clang --target=i8086-pc-win16 -mcmodel=large --sysroot=<sysroot> -Os \
 
   `llvm-windres --target=i8086-pc-win16 app.rc app.res` does the same.
 - C++ works as on DOS, without exceptions or RTTI by default.
-  `-fexceptions` works in programs, and in compact and large DLLs; an
-  exception must not cross from a DLL to its caller or back.
+  `-fexceptions` works in programs and in DLLs, in every model. An
+  exception must not cross from a DLL to its caller or back. Each task
+  that calls a DLL has its own handlers and exceptions, found by its
+  stack segment, so a task can yield inside a `try` or `catch` block. A
+  DLL can serve 8 such tasks at a time.
+- `-mquickwin` links a program with `main()` with a console window for
+  its standard input, output and error, as Microsoft's QuickWin does. See
+  [docs/quickwin.md](docs/quickwin.md).
 - Wine reports 0 as the exit code of every 16-bit program.
 
 ### Windows versions
@@ -357,6 +364,8 @@ They build each test for the small, medium, compact and large models at
   (handed to the C library too).
 - `tests/win16/cxxdll.cpp` with `tests/win16/cxxdllapp.c`: a C++ DLL with
   objects, strings and vectors on its stack.
+- `tests/win16/ehdll.cpp` with `tests/win16/ehdllapp.c`: C++ exceptions
+  thrown and caught inside a DLL.
 - `tests/win16/res.rc` with `tests/win16/res.c`: resources compiled by
   `llvm-rc -win16`: strings, a menu, accelerators, a dialog, an icon, raw
   data and version information.
@@ -365,6 +374,8 @@ They build each test for the small, medium, compact and large models at
 - `tests/win16/gui.c`: a window, its message loop, painting and a timer.
   It needs a display: `DISPLAY`, or `xvfb-run` on `PATH`. `NO_GUI=1` skips
   it.
+- `tests/win16/quickwin.c`: a `-mquickwin` program writes into its window
+  and reads a line that the test types into it. It also needs a display.
 
 ## CI
 
