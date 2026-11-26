@@ -8,8 +8,8 @@
 # and libraries that these build on:
 #   bin/win*.cfg                    the --config files of the Windows targets
 #   i8086-msdos/include/            the Windows headers (include/ here)
-#   i8086-msdos/lib/win16/          the import lists and the libraries of
-#                                   every memory model
+#   i8086-msdos/lib/win16/          the import lists, vbapi.lib and the
+#                                   libraries of every memory model
 #   share/clang-dos/                ne-check.py, win16-imports.py,
 #                                   check-headers.py, docs/win16-README.md
 #   share/licenses/win16-sdk/       the licences (see NOTICE.md)
@@ -28,6 +28,10 @@ cp "$here"/include/*.h "$d/i8086-msdos/include/"
 cp -R "$lib" "$d/i8086-msdos/lib/"
 # The import lists and headers of this checkout, over the package's.
 cp "$here"/lib/*.lnk "$d/i8086-msdos/lib/win16/"
+# The Visual Basic API stubs of this checkout (vbapi.h).
+"$pkg/bin/clang" --target=i8086-pc-win16 -c "$here/vbapi/vbapi.S" -o "$stage/vbapi.obj"
+rm -f "$d/i8086-msdos/lib/win16/vbapi.lib"
+"$pkg/bin/llvm-ar" rcs "$d/i8086-msdos/lib/win16/vbapi.lib" "$stage/vbapi.obj"
 cp "$here/tools/ne-check.py" "$here/tools/win16-imports.py" \
   "$here/tools/check-headers.py" "$d/share/clang-dos/"
 cp "$here/README.md" "$d/share/clang-dos/docs/win16-README.md"

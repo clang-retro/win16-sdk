@@ -45,6 +45,11 @@ cp "$here/lib/windows.lnk" "$here/lib/windows300.lnk" \
   "$here/lib/windows200.lnk" "$SYSROOT/lib/win16/"
 mkdir -p "$SYSROOT/include"
 cp "$here"/include/*.h "$SYSROOT/include/"
+# The stubs of the Visual Basic API functions (vbapi.h). They have no
+# relocations, so one library serves every memory model.
+"$BIN/clang" --target=i8086-pc-win16 -c "$here/vbapi/vbapi.S" -o "$WORK/vbapi.obj"
+rm -f "$SYSROOT/lib/win16/vbapi.lib"
+"$BIN/llvm-ar" rcs "$SYSROOT/lib/win16/vbapi.lib" "$WORK/vbapi.obj"
 mkdir -p "$SYSROOT/share/licenses/win16-sdk"
 cp "$here/LICENSE" "$SYSROOT/share/licenses/win16-sdk/LICENSE"
 cp "$here/NOTICE.md" "$SYSROOT/share/licenses/win16-sdk/README.md"

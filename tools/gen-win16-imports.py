@@ -114,6 +114,107 @@ BY_NAME = [
               "SQLTablePrivileges", "SQLDrivers", "SQLBindParameter"]),
 ]
 
+# DLLs that Wine has no 16-bit spec for, with the ordinals of the import
+# library of their SDK: Pen Windows (PENWIN.DLL), from PENWIN.LIB of the
+# Windows 3.1 SDK (Pen Windows 1.0) and of the Win32 SDK's 16-bit
+# libraries (Pen Services 2.0). The two versions give each function the
+# same ordinal, except RemovePenDataStrokes, which is in EXACT_NAME.
+BY_ORDINAL = [
+    ("PENWIN", [
+        ("HeditWndProc", 5), ("InitRC", 10), ("Recognize", 11),
+        ("RecognizeData", 12), ("BoundingRectFromPoints", 13),
+        ("InstallRecognizer", 14), ("UninstallRecognizer", 15),
+        ("TrainInk", 16), ("TrainContext", 17), ("ResultsFunction", 100),
+        ("PostVirtualMouseEvent", 101), ("PostVirtualKeyEvent", 102),
+        ("AtomicVirtualEvent", 104), ("GetPenAppFlags", 109),
+        ("IsPenAware", 110), ("RegisterPenApp", 111),
+        ("FRegisterVirtualKeyBoard", 112), ("SetPenAppFlags", 112),
+        ("DWMouseHook", 113), ("SetRecogHook", 114), ("SetPenHook", 115),
+        ("EditSubWndProc", 116), ("GetSymbolMaxLength", 121),
+        ("GetSymbolCount", 122), ("FirstSymbolFromGraph", 123),
+        ("EnumSymbols", 124), ("SymbolToCharacter", 125),
+        ("CharacterToSymbol", 126), ("DPtoTP", 131), ("TPtoDP", 132),
+        ("IsPenEvent", 135), ("EndPenCollection", 137),
+        ("GetPenHwData", 138), ("GetPenHwEventData", 139),
+        ("GetPenAsyncState", 144), ("SetGlobalRC", 150),
+        ("GetGlobalRC", 151), ("SetInkProperties", 160),
+        ("GetInkProperties", 161), ("EnableInking", 162),
+        ("UpdateInking", 163), ("ProcessWriting", 170),
+        ("PenInputWndProc", 171), ("CorrectWriting", 172),
+        ("EmulatePen", 173), ("CorrectionDlgProc", 175),
+        ("PictureWndProc", 176), ("DwWrKbdHook", 178),
+        ("ArrowTimerProc", 181), ("ArrowControlProc", 182),
+        ("RecSetPenEndEvents", 190), ("FSetPenCollectionMode", 191),
+        ("ListenWndProc", 192), ("SaveScreen", 193), ("RestoreScreen", 194),
+        ("AddPenEvent", 195), ("ProcessPenEvent", 196), ("SystemEntry", 197),
+        ("SaveMEI", 198), ("GetMEI", 199), ("UpdatePenInfo", 207),
+        ("CreatePenDataEx", 208), ("DestroyPenData", 209),
+        ("CreatePenData", 210), ("GetPenDataInfo", 211),
+        ("AddPointsPenData", 212), ("BeginEnumStrokes", 213),
+        ("DrawPenData", 214), ("MetricScalePenData", 215),
+        ("OffsetPenData", 216), ("EndEnumStrokes", 217),
+        ("DuplicatePenData", 218), ("GetPenDataStroke", 219),
+        ("StandardYieldFunction", 220), ("GetPenDataAttributes", 220),
+        ("GetPointsFromPendata", 221), ("GetPointsFromPenData", 221),
+        ("ResizePenData", 222), ("CompactPenData", 223),
+        ("InsertPenData", 224), ("GetStrokeAttributes", 225),
+        ("SetStrokeAttributes", 226), ("GetStrokeTableAttributes", 227),
+        ("SetStrokeTableAttributes", 228), ("DrawPenDataEx", 229),
+        ("InsertPenDataPoints", 234), ("InsertPenDataStroke", 235),
+        ("ExtractPenDataPoints", 236), ("HitTestPenData", 238),
+        ("CompressPenData", 240), ("TrimPenData", 241),
+        ("RedisplayPenData", 242), ("ExtractPenDataStrokes", 243),
+        ("PenDataFromBuffer", 247), ("PenDataToBuffer", 248),
+        ("ShowKeyboard", 250), ("ECPenWndProc", 300), ("ECDrawInk", 301),
+        ("ECDrawRule", 302), ("NotifyHHSystemChanged", 303),
+        ("HwndCreateDinkie", 310), ("FDestroyDinkie", 311),
+        ("FModifyDinkie", 312), ("DefPenWindowProc", 350),
+        ("DoDefaultPenInput", 351), ("DriverProc", 401),
+        ("GetVersionPenWin", 402), ("ShowGestureEditor", 412),
+        ("GeaDlgProc", 413), ("PropHook", 414), ("ExecuteGesture", 418),
+        ("DictionarySearch", 420), ("GetPenMiscInfo", 421),
+        ("SetPenMiscInfo", 422), ("BoxEditWndProc", 501),
+        ("EnumFontProc", 502), ("CreatePenDataRegion", 581),
+        ("StartPenInput", 600), ("GetPenInput", 601), ("PeekPenInput", 602),
+        ("StopPenInput", 603), ("StartInking", 610), ("StopInking", 611),
+        ("TargetPoints", 625), ("AddInksetInterval", 630),
+        ("CreateInkset", 631), ("DestroyInkset", 632),
+        ("GetInksetInterval", 633), ("GetInksetIntervalCount", 634),
+        ("CreateCompatibleHRC", 1000), ("DestroyHRC", 1001),
+        ("ProcessHRC", 1002), ("GetHRECFromHRC", 1003),
+        ("AddPenInputHRC", 1010), ("EndPenInputHRC", 1011),
+        ("AddPenDataHRC", 1012), ("CreatePenDataHRC", 1013),
+        ("SetAlphabetHRC", 1020), ("GetAlphabetHRC", 1021),
+        ("SetAlphabetPriorityHRC", 1022), ("GetAlphabetPriorityHRC", 1023),
+        ("EnableGestureSetHRC", 1024), ("EnableSystemDictionaryHRC", 1026),
+        ("SetMaxResultsHRC", 1030), ("GetMaxResultsHRC", 1031),
+        ("SetInternationalHRC", 1032), ("GetInternationalHRC", 1033),
+        ("SetGuideHRC", 1040), ("GetGuideHRC", 1041),
+        ("SetBoxAlphabetHRC", 1045), ("SetWordlistHRC", 1046),
+        ("GetWordlistHRC", 1047), ("SetWordlistCoercionHRC", 1048),
+        ("GetWordlistCoercionHRC", 1049), ("GetResultsHRC", 1050),
+        ("GetBoxResultsHRC", 1051), ("DestroyHRCRESULT", 1062),
+        ("GetSymbolsHRCRESULT", 1063), ("GetSymbolCountHRCRESULT", 1064),
+        ("GetBoxMappingHRCRESULT", 1065), ("GetHotspotsHRCRESULT", 1066),
+        ("CreateInksetHRCRESULT", 1068),
+        ("GetAlternateWordsHRCRESULT", 1069), ("CreateHWL", 1070),
+        ("DestroyHWL", 1071), ("AddWordsHWL", 1072), ("ReadHWL", 1073),
+        ("WriteHWL", 1074), ("ConfigHREC", 1080),
+        ("SetResultsHookHREC", 1081), ("UnhookResultsHookHREC", 1082),
+        ("TrainHREC", 1083), ("FT_PWFTHKTHKCONNECTIONDATA", 2000),
+        ("PWCTHKCONNECTIONDATASL", 2001), ("IMTDispatchProcIE", 2101),
+        ("IMTDispatchProcPM", 2102)]),
+]
+
+# Functions imported by name, with the name spelled as the DLL exports
+# it: the conversions of the Win32s Universal Thunk (WIN32S16.DLL, from
+# W32SUT16.LIB of the Win32 SDK), and RemovePenDataStrokes, which is
+# ordinal 243 in Pen Windows 1.0 and 237 in Pen Services 2.0.
+EXACT_NAME = [
+    ("PENWIN", ["REMOVEPENDATASTROKES"]),
+    ("WIN32S16", ["UTLinearToSelectorOffset", "UTSelectorOffsetToLinear"]),
+]
+
 ENTRY = re.compile(r"^\s*(\d+)\s+(\w+)((?:\s+-[\w=]+)*)\s+([\w@?$]+)")
 
 
@@ -264,6 +365,18 @@ def main():
         print(f"# {m} (by name)")
         for name in names:
             print(f"import {name.upper()} {m}.{name.upper()}")
+    for m, entries in BY_ORDINAL:
+        print(f"# {m}")
+        for name, ordinal in entries:
+            # A driver defines its own DriverProc, which PENWIN.DLL (a
+            # driver too) exports.
+            if name.upper() not in seen and name != "DriverProc":
+                seen.add(name.upper())
+                print(f"import {name.upper()} {m}.{ordinal}")
+    for m, names in EXACT_NAME:
+        print(f"# {m} (by name)")
+        for name in names:
+            print(f"import {name.upper()} {m}.{name}")
 
 if __name__ == "__main__":
     main()
