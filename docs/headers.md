@@ -18,6 +18,9 @@ These headers are for DLLs that a program installs with it on Windows 3.1
 | `wing.h` | WING | WinG 1.0 |
 | `sql.h`, `sqlext.h` | ODBC | ODBC 2.0, core, level 1 and level 2 |
 | `mapi.h` | MAPI | Simple MAPI 1.0 |
+| `penwin.h`, `skbapi.h` | PENWIN | Pen Windows 1.0 (Windows for Pen Computing) and, with `PENVER` 0x0200, the 16-bit API of Pen Services 2.0 |
+| `w32sut.h` | WIN32S16 | The Universal Thunk of Win32s: a Win32 program on Windows 3.1 calls a 16-bit DLL |
+| `wownt16.h` | KERNEL | The generic thunks: a 16-bit program calls a 32-bit DLL on Windows NT 3.5 and later and on Windows 95 and later |
 
 The 16-bit OLE 2 rules are not the 32-bit ones:
 
@@ -54,7 +57,48 @@ The 16-bit OLE 2 rules are not the 32-bit ones:
   others, so that a program does not import the OLE 1 function.
 
 The ODBC and MAPI imports are by name, because Wine has no `.spec` files
-for those DLLs to give the ordinals. The other imports are by ordinal, from
-Wine's `.spec` files.
+for those DLLs to give the ordinals. The PENWIN imports are by ordinal,
+from the names and ordinals of `PENWIN.LIB` in the Windows 3.1 SDK and in
+the 16-bit libraries of the Win32 SDK. `RemovePenDataStrokes` is imported
+by name, because Pen Windows 1.0 and Pen Services 2.0 give it different
+ordinals. The WIN32S16 imports are by name, with the names spelled as
+WIN32S16.DLL exports them (`UTLinearToSelectorOffset`). The other imports
+are by ordinal, from Wine's `.spec` files.
+
+### Pen Windows
+
+- `PENVER` is the Pen Windows version that the program needs. The default
+  is 0x0100, Pen Windows 1.0 on Windows 3.1. With 0x0100, the header
+  declares only the functions of Pen Windows 1.0, and `DestroyPenData`
+  and `EndEnumStrokes` are macros, as in Pen Windows 1.0. Define `PENVER`
+  as 0x0200 for the 16-bit API of Pen Services 2.0.
+- `ALC_ALL`, `ALC_RESERVED` and `BXS_MASK` have the values of the
+  version that `PENVER` selects.
+- Each pointer in a structure or a parameter is a far pointer.
+- The types and the constants come from mingw-w64's `penwin.h` (public
+  domain). The structures have the 16-bit sizes, because `int` and `UINT`
+  are 16 bits. The functions are the functions of each version's
+  `PENWIN.LIB`.
+- Wine has no PENWIN.DLL. `tests/win16/penut.c` makes a DLL that calls
+  Pen Windows, and the test checks the imports of the DLL.
+
+### The Universal Thunk and the generic thunks
+
+- `w32sut.h` serves the two halves of a Universal Thunk. A 16-bit target
+  gets the 16-bit half (`W32SUT_16`): `UT16CBPROC`,
+  `UTLinearToSelectorOffset` and `UTSelectorOffsetToLinear`. A 32-bit
+  target gets the Win32 half (`W32SUT_32`): `UT32PROC`, `UTRegister` and
+  `UTUnRegister`, which are in the KERNEL32 import library of win32-sdk's
+  sysroots. To use the header in a Win32 program, add the win16-sdk
+  `include` directory after the sysroot's headers
+  (`-idirafter <win16-sdk>/include`).
+- The 16-bit DLL exports the two functions whose names the Win32 program
+  gives to `UTRegister`: an init function,
+  `DWORD FAR PASCAL UTInit(UT16CBPROC, LPVOID)`, and a proc function,
+  `DWORD FAR PASCAL UTProc(LPVOID, DWORD)`.
+- `wownt16.h` declares `LoadLibraryEx32W`, `GetProcAddress32W`,
+  `FreeLibrary32W`, `GetVDMPointer32W` and `CallProcEx32W` (a `CDECL`
+  function, `_CallProcEx32W` in the import list). KERNEL has them from
+  Windows NT 3.5 and Windows 95 on. Windows 3.1 does not have them.
 
 ## Checking the headers

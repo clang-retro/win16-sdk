@@ -33,6 +33,11 @@ independent sources, without taking text from either:
 - every integer constant, against mingw-w64's headers (public domain),
   allowing for the values that Win32 changed.
 
+`penwin.h` is the exception: its types and constants come from
+mingw-w64's `penwin.h`, which is in the public domain, made 16-bit. The
+`PENWIN` and `WIN32S16` import lists are the names and ordinals of the
+SDKs' import libraries.
+
 `tests/win16/sizes.c` checks the size of each structure against Wine's
 16-bit definitions.
 

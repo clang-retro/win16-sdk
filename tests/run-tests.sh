@@ -299,5 +299,31 @@ for m in ${DISPLAY_MODELS:-small large}; do
   done
 done
 
+# Pen Windows, the Win32s Universal Thunk and the generic thunks
+# (penwin.h, w32sut.h, wownt16.h). Wine has no PENWIN.DLL, no WIN32S16.DLL
+# and no Win32s, so the test checks the NE file: the modules it imports
+# from, and the names it imports WIN32S16's functions and
+# RemovePenDataStrokes by, which must have the case that the DLLs export.
+for m in ${PEN_MODELS:-small medium compact large}; do
+  for o in O0 O2; do
+    t=$m-$o
+    if build "penut-$t" "$BIN/clang" --target=i8086-pc-win16 -mcmodel=$m \
+         --sysroot="$SYSROOT" $ldflag -$o -Wall -Wextra -Werror -shared \
+         "$tests/penut.c" -o "PENUT-$t.DLL" &&
+       check "penut-$t" "PENUT-$t.DLL" --protmode; then
+      if grep -q "imports from: KERNEL, PENWIN, WIN32S16" "penut-$t.ne" &&
+         grep -q -a "UTLinearToSelectorOffset" "PENUT-$t.DLL" &&
+         grep -q -a "UTSelectorOffsetToLinear" "PENUT-$t.DLL" &&
+         grep -q -a "REMOVEPENDATASTROKES" "PENUT-$t.DLL"; then
+        pass=$((pass + 1))
+      else
+        fail=$((fail + 1))
+        echo "FAIL penut-$t (imports)"
+        sed 's/^/    /' "penut-$t.ne" | head -20
+      fi
+    fi
+  done
+done
+
 echo "$pass passed, $fail failed"
 [ "$fail" = 0 ]
