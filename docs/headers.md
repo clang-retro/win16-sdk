@@ -21,6 +21,7 @@ These headers are for DLLs that a program installs with it on Windows 3.1
 | `penwin.h`, `skbapi.h` | PENWIN | Pen Windows 1.0 (Windows for Pen Computing) and, with `PENVER` 0x0200, the 16-bit API of Pen Services 2.0 |
 | `w32sut.h` | WIN32S16 | The Universal Thunk of Win32s: a Win32 program on Windows 3.1 calls a 16-bit DLL |
 | `wownt16.h` | KERNEL | The generic thunks: a 16-bit program calls a 32-bit DLL on Windows NT 3.5 and later and on Windows 95 and later |
+| `vbapi.h` | (Visual Basic) | The Visual Basic 1.0, 2.0 and 3.0 custom control interface (VBX); the functions are in `vbapi.lib` |
 
 The 16-bit OLE 2 rules are not the 32-bit ones:
 
@@ -100,5 +101,27 @@ are by ordinal, from Wine's `.spec` files.
   `FreeLibrary32W`, `GetVDMPointer32W` and `CallProcEx32W` (a `CDECL`
   function, `_CallProcEx32W` in the import list). KERNEL has them from
   Windows NT 3.5 and Windows 95 on. Windows 3.1 does not have them.
+
+### Visual Basic custom controls (VBX)
+
+- A custom control is a DLL with the extension `.VBX`. It exports
+  `VBINITCC`, `VBTERMCC` and `VBGetModelInfo`, which `vbapi.h` declares.
+  `FAR PASCAL` gives them the upper-case names that Visual Basic looks
+  for. `VBINITCC` registers each `MODEL` with `VBRegisterModel`.
+- The `VB` functions are not in an import list. Visual Basic puts the
+  address of its dispatcher at offset 0x20 of its stack segment, and each
+  function is a stub that jumps there with the number of the function in
+  `BX`. The stubs are in `lib/win16/vbapi.lib` of the sysroot, which has
+  one library for all the memory models. Give its path to the link:
+  `clang --config=win31.cfg -shared ctl.c $SYSROOT/lib/win16/vbapi.lib -o CTL.VBX`.
+- The structures are packed to 1 byte, and their pointers to names and
+  lists (`PSTR`, `NPPROPLIST`) are near pointers to the data segment of
+  the VBX. Use the small or the medium memory model.
+- The function numbers come from the `VBAPI.LIB` of the Visual Basic 3.0
+  Professional Edition Control Development Kit. `VBGetVersion` gives
+  `VB100_VERSION` when the dispatcher is the one of Visual Basic 1.0, as
+  that library does.
+- Wine has no Visual Basic. `tests/win16/vbxctl.c` makes a VBX, and the
+  test checks its imports and exports and the sizes of the structures.
 
 ## Checking the headers

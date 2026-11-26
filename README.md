@@ -271,6 +271,7 @@ none of Microsoft's text is used):
 | `winsock.h` | Windows Sockets 1.1 (WINSOCK.DLL, which comes with the network software) |
 | `ole.h`, `ole2.h`, `compobj.h`, `storage.h`, `dispatch.h`, `olenls.h`, `vfw.h`, `wing.h`, `sql.h`, `sqlext.h`, `mapi.h`, `penwin.h`, `skbapi.h` | the redistributable DLLs: OLE 1 and 2, Video for Windows, WinG, ODBC 2.0, Simple MAPI and Pen Windows (see [docs/headers.md](docs/headers.md)) |
 | `w32sut.h`, `wownt16.h` | the Universal Thunk of Win32s and the generic thunks of Windows NT and 95 (see [docs/headers.md](docs/headers.md)) |
+| `vbapi.h` | Visual Basic custom controls (VBX), with the stubs in `lib/win16/vbapi.lib` (see [docs/headers.md](docs/headers.md)) |
 
 - `STRICT` makes each kind of handle a distinct type (a near pointer to a
   structure of its own), and the callback types prototypes, so the compiler

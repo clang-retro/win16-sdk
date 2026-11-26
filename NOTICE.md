@@ -38,6 +38,11 @@ mingw-w64's `penwin.h`, which is in the public domain, made 16-bit. The
 `PENWIN` and `WIN32S16` import lists are the names and ordinals of the
 SDKs' import libraries.
 
+`vbapi.h` and `vbapi/vbapi.S` were written for clang-retro from the
+published Visual Basic custom control interface. The function numbers
+of the stubs are those of the Control Development Kit's `VBAPI.LIB`;
+no Microsoft code or text is copied.
+
 `tests/win16/sizes.c` checks the size of each structure against Wine's
 16-bit definitions.
 

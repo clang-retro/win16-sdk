@@ -325,5 +325,30 @@ for m in ${PEN_MODELS:-small medium compact large}; do
   done
 done
 
+# A Visual Basic custom control (vbapi.h, vbapi.lib). Wine has no Visual
+# Basic, so the test checks the NE file: it imports only the Windows
+# modules (the VB functions go through the stubs), and it exports the
+# names that Visual Basic looks for.
+for m in small medium; do
+  for o in O0 O2; do
+    t=$m-$o
+    if build "vbxctl-$t" "$BIN/clang" --target=i8086-pc-win16 -mcmodel=$m \
+         --sysroot="$SYSROOT" $ldflag -$o -Wall -Wextra -Werror -shared \
+         "$tests/vbxctl.c" "$SYSROOT/lib/win16/vbapi.lib" -o "VBXCTL-$t.VBX" &&
+       check "vbxctl-$t" "VBXCTL-$t.VBX" --protmode; then
+      if grep -q "imports from: KERNEL, USER, GDI$" "vbxctl-$t.ne" &&
+         grep -q -a "VBINITCC" "VBXCTL-$t.VBX" &&
+         grep -q -a "VBTERMCC" "VBXCTL-$t.VBX" &&
+         grep -q -a "VBGETMODELINFO" "VBXCTL-$t.VBX"; then
+        pass=$((pass + 1))
+      else
+        fail=$((fail + 1))
+        echo "FAIL vbxctl-$t (imports or exports)"
+        sed 's/^/    /' "vbxctl-$t.ne" | head -20
+      fi
+    fi
+  done
+done
+
 echo "$pass passed, $fail failed"
 [ "$fail" = 0 ]
