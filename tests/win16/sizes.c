@@ -121,8 +121,8 @@ SIZE(fd_set, 130);
 SIZE(struct sockaddr_in, 16);
 SIZE(struct hostent, 16);
 
-/* The display driver interface (gdidefs.h, dibeng.h), from the layouts of
- * the DDK's GDIDEFS.INC, DIBENG.INC and VALMODE.INC. */
+/* The display driver interface (gdidefs.h, dibeng.h), with the sizes that
+ * the DDK documentation gives. */
 SIZE(GDIINFO, 110);
 _Static_assert(__builtin_offsetof(GDIINFO, dpLogPixelsX) == 88, "GDIINFO");
 SIZE(DRAWMODE, 42);

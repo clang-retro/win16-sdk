@@ -38,6 +38,12 @@ mingw-w64's `penwin.h`, which is in the public domain, made 16-bit. The
 `PENWIN` and `WIN32S16` import lists are the names and ordinals of the
 SDKs' import libraries.
 
+`gdidefs.h` and `dibeng.h` were written for clang-retro from the
+published documentation of the display driver interface and the DIB
+engine. No text of a DDK include file is used. `tools/check-ddk.py`
+compares their values and layouts with a DDK that a developer has; the
+DDK is never part of this repository.
+
 `vbapi.h` and `vbapi/vbapi.S` were written for clang-retro from the
 published Visual Basic custom control interface. The function numbers
 of the stubs are those of the Control Development Kit's `VBAPI.LIB`;
