@@ -1,79 +1,92 @@
-/* dibeng.h: the DIB engine (DIBENG.DLL) of Windows 95, 98 and Me, which
- * draws into a framebuffer for display minidrivers. A minidriver is a
- * 16-bit DLL named DISPLAY that exports the GDI display driver functions
- * (BitBlt @1 ... ReEnable @31, Inquire @101 ... CheckCursor @104,
- * GetDriverResourceID @450, UserRepaintDisable @500, ValidateMode @700),
- * sets the mode in Enable and passes nearly everything else to the DIB
- * engine. Link it with -Wl,@<sysroot>/lib/win16/dibeng.lnk, which imports
- * the engine's functions by ordinal. The names, values and layouts are
- * those of the DDK's DIBENG.INC and VALMODE.INC. tests/win16/display.c is
- * a minidriver. */
+/* dibeng.h: the DIB engine (DIBENG.DLL) of Windows 95, 98 and Me, for
+ * display minidrivers.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ * Copyright (C) clang-retro contributors.
+ *
+ * Written for clang-retro from the published documentation of the DIB
+ * engine (the display driver chapters of the Windows 95 DDK
+ * documentation). No text of a Microsoft header or include file is used.
+ * tools/check-ddk.py compares the values with a DDK that you have; see
+ * the README.
+ *
+ * The DIB engine draws into a framebuffer that is laid out as a DIB. A
+ * display minidriver is a 16-bit DLL named DISPLAY. It exports the GDI
+ * display driver functions (BitBlt @1 to ReEnable @31, Inquire @101 to
+ * CheckCursor @104, GetDriverResourceID @450, UserRepaintDisable @500 and
+ * ValidateMode @700). It sets the video mode in Enable, and sends almost
+ * all other calls to the DIB engine. Link it with
+ * -Wl,@<sysroot>/lib/win16/dibeng.lnk, which imports the functions of
+ * the engine by ordinal. tests/win16/display.c is an example. */
 #ifndef _DIBENG_H
 #define _DIBENG_H
 #include <gdidefs.h>
 
 #pragma pack(push, 1)
 
-#define VER_DIBENG 0x400
-#define TYPE_DIBENG 0x5250  /* deType of a DIB engine PDEVICE ('RP') */
+#define VER_DIBENG 0x400   /* DIBENGINE.deVersion */
+#define TYPE_DIBENG 0x5250 /* DIBENGINE.deType: the letters "RP" */
 
-/* The PDEVICE (and the bitmap header) of a surface the DIB engine draws
- * on. A minidriver's PDEVICE starts with one. */
+/* The PDEVICE of a surface that the DIB engine draws on: the screen, or
+ * a device bitmap. It is also the header of each bitmap that the engine
+ * makes. */
 typedef struct tagDIBENGINE {
   WORD deType;            /* TYPE_DIBENG */
-  WORD deWidth;
-  WORD deHeight;
-  WORD deWidthBytes;
-  BYTE dePlanes;
-  BYTE deBitsPixel;
+  WORD deWidth;           /* width, in pixels */
+  WORD deHeight;          /* height, in pixels */
+  WORD deWidthBytes;      /* bytes of each scan line */
+  BYTE dePlanes;          /* 1 */
+  BYTE deBitsPixel;       /* 1, 4, 8, 16, 24 or 32 */
   DWORD deReserved1;
-  DWORD deDeltaScan;
-  LPVOID delpPDevice;
-  DWORD deBitsOffset;     /* the 16:32 address of the bits */
-  WORD deBitsSelector;
-  WORD deFlags;           /* below */
+  DWORD deDeltaScan;      /* bytes from one scan line to the next */
+  LPBYTE delpPDevice;     /* the PDEVICE that owns this surface */
+  DWORD deBitsOffset;     /* offset of the bits in their segment */
+  WORD deBitsSelector;    /* selector of the bits */
+  WORD deFlags;           /* the flags below */
   WORD deVersion;         /* VER_DIBENG */
-  LPBITMAPINFO deBitmapInfo;
-  void (FAR PASCAL *deBeginAccess)(void); /* see DIB_BeginAccess */
-  void (FAR PASCAL *deEndAccess)(void);
-  DWORD deDriverReserved;
+  LPBITMAPINFO deBitmapInfo; /* the BITMAPINFO of the surface */
+  void (WINAPI *deBeginAccess)(void); /* before the engine draws */
+  void (WINAPI *deEndAccess)(void);   /* after the engine draws */
+  DWORD deDriverReserved; /* for the minidriver */
 } DIBENGINE, FAR *LPDIBENGINE;
 
-/* deFlags */
-#define MINIDRIVER 0x0001
-#define PALETTIZED 0x0002
-#define SELECTEDDIB 0x0004
-#define OFFSCREEN 0x0008
-#define DISABLED 0x0010
-#define BUSY 0x0010
-#define NOT_FRAMEBUFFER 0x0020
-#define FIVE6FIVE 0x0040
-#define NON64KBANK 0x0080
-#define HWCURSOR 0x0100
-#define DITHER256 0x0200
-#define CTCHANGE 0x0400
-#define VGADITHER 0x0800
-#define PALETTE_XLAT 0x1000
-#define BANKEDSCAN 0x2000
-#define BANKEDVRAM 0x4000
-#define VRAM 0x8000
-#define BUSY_BIT 4          /* the bit number of BUSY */
+/* DIBENGINE.deFlags. */
+#define MINIDRIVER 0x0001      /* the screen of a minidriver */
+#define PALETTIZED 0x0002      /* the colours go through a palette */
+#define SELECTEDDIB 0x0004     /* a DIB section selected into a DC */
+#define OFFSCREEN 0x0008       /* in off-screen video memory */
+#define DISABLED 0x0010        /* the screen is disabled */
+#define BUSY 0x0010            /* the engine is drawing */
+#define NOT_FRAMEBUFFER 0x0020 /* no linear access to the bits */
+#define FIVE6FIVE 0x0040       /* 16 bits per pixel, as 5-6-5 */
+#define NON64KBANK 0x0080      /* banks are not 64 KB in size */
+#define HWCURSOR 0x0100        /* the hardware draws the cursor */
+#define DITHER256 0x0200       /* dither to the 256-colour palette */
+#define CTCHANGE 0x0400        /* the colour table changed */
+#define VGADITHER 0x0800       /* dither to the 16 VGA colours */
+#define PALETTE_XLAT 0x1000    /* translate through the palette */
+#define BANKEDSCAN 0x2000      /* a scan line can cross a bank */
+#define BANKEDVRAM 0x4000      /* video memory is in banks */
+#define VRAM 0x8000            /* the bits are in video memory */
+#define BUSY_BIT 4             /* the bit number of BUSY */
 
-/* The flags of DIB_BeginAccess */
+/* Bits of the screen-access flags that the engine and the minidriver
+ * share: the framebuffer is being accessed, or the cursor is excluded. */
 #define FB_ACCESS 0x0001
 #define CURSOREXCLUDE 0x0008
 
-/* A colour table entry of a palettized surface */
+/* An entry in the colour table of a surface: an RGBQUAD with flags in
+ * the last byte. */
 typedef struct tagDIBColorEntry {
   BYTE dceBlue;
   BYTE dceGreen;
   BYTE dceRed;
-  BYTE dceFlags;          /* below */
+  BYTE dceFlags; /* MAPTOWHITE, NONSTATIC */
 } DIBColorEntry;
-#define MAPTOWHITE 0x01
-#define NONSTATIC 0x80
+#define MAPTOWHITE 0x01 /* the colour maps to white on a mono surface */
+#define NONSTATIC 0x80  /* an entry that an application can change */
 
-/* dp?BrushFlags of a DIB engine brush */
+/* The flags of a brush that the engine realized. */
 #define COLORSOLID 0x01
 #define MONOSOLID 0x02
 #define PATTERNMONO 0x04

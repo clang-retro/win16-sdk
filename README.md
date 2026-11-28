@@ -22,6 +22,7 @@ tools/ne-check.py          checks an NE program for a Windows version
 tools/win16-imports.py     import list for a DLL
 tools/gen-win16-imports.py makes lib/*.lnk
 tools/check-headers.py     checks the headers against Wine and mingw-w64
+tools/check-ddk.py         checks gdidefs.h and dibeng.h against your own DDK
 tools/make-dist.sh         makes the redistributable SDK archive
 NOTICE.md                  what the SDK is made of, and its licences
 tests/                     the tests, run in Wine
@@ -105,6 +106,17 @@ clang --target=i8086-pc-win16 -mcmodel=large --sysroot=<sysroot> -Os \
   every far function the DLL entry sequence without `__export`, which
   would export it a second time, by name. The display VxD's half, the
   mini-VDD, is made with win32-sdk (`vxd/minivdd.c`).
+  `gdidefs.h` and `dibeng.h` are written from the DDK documentation. To
+  compare them with the include files of a Windows 95 DDK that you have:
+
+  ```sh
+  python3 tools/check-ddk.py --clang <bin>/clang -I include dibeng.h \
+    DDK/INC16/GDIDEFS.INC DDK/INC16/DIBENG.INC DDK/INC16/VALMODE.INC
+  ```
+
+  The DDK is not part of this project, and nothing from it goes into
+  the repository. `BITMAP` and `RECT` show as different: the DDK's
+  `BITMAP` is the device bitmap of a driver, not the one of `windows.h`.
 - A DLL runs on the stack of the program that calls it, so `SS` is not
   `DS`. The compiler reaches locals through `SS`: far pointers to locals
   (all data pointers in compact and large) carry `SS`, structures are
